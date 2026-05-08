@@ -1,0 +1,255 @@
+{
+  "title": "Artemis — Supervision",
+  "uid": "artemis-supervision",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "timezone": "browser",
+  "panels": [
+
+    { "type": "row", "id": 1, "title": "HAProxy — Load Balancer", "collapsed": false,
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 } },
+
+    {
+      "type": "stat", "id": 2, "title": "artweb01p",
+      "gridPos": { "x": 0, "y": 1, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "UP",   "color": "green" } } },
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red"   } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "targets": [{ "expr": "haproxy_server_status{server=\"artweb01p\",state=\"UP\"}", "legendFormat": "" }]
+    },
+
+    {
+      "type": "stat", "id": 3, "title": "artweb02p",
+      "gridPos": { "x": 4, "y": 1, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "UP",   "color": "green" } } },
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red"   } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "targets": [{ "expr": "haproxy_server_status{server=\"artweb02p\",state=\"UP\"}", "legendFormat": "" }]
+    },
+
+    {
+      "type": "stat", "id": 7, "title": "Frontend HTTP",
+      "gridPos": { "x": 8, "y": 1, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "UP",   "color": "green" } } },
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red"   } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "targets": [{ "expr": "haproxy_frontend_status{proxy=\"http_front\",state=\"UP\"}", "legendFormat": "" }]
+    },
+
+    {
+      "type": "stat", "id": 8, "title": "Connexions HAProxy",
+      "gridPos": { "x": 12, "y": 1, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "value_and_name", "colorMode": "value" },
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 100 }, { "color": "red", "value": 1000 }] } } },
+      "targets": [
+        { "expr": "haproxy_process_current_connections", "legendFormat": "actuelles" },
+        { "expr": "haproxy_process_current_connection_rate", "legendFormat": "conn/s" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 4, "title": "Sessions actives (frontend HTTP)",
+      "gridPos": { "x": 16, "y": 1, "w": 8, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "palette-classic" } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "haproxy_frontend_current_sessions{proxy=\"http_front\"}", "legendFormat": "frontend http" },
+        { "expr": "haproxy_backend_current_sessions{proxy=\"nginx_backends\"}", "legendFormat": "backend nginx" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 5, "title": "Frontend HTTP — requêtes et réponses",
+      "gridPos": { "x": 0, "y": 5, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps", "color": { "mode": "palette-classic" } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "rate(haproxy_frontend_http_requests_total{proxy=\"http_front\"}[1m])", "legendFormat": "requêtes" },
+        { "expr": "rate(haproxy_frontend_http_responses_total{proxy=\"http_front\",code=\"2xx\"}[1m])", "legendFormat": "2xx" },
+        { "expr": "rate(haproxy_frontend_http_responses_total{proxy=\"http_front\",code=\"3xx\"}[1m])", "legendFormat": "3xx" },
+        { "expr": "rate(haproxy_frontend_http_responses_total{proxy=\"http_front\",code=\"4xx\"}[1m])", "legendFormat": "4xx" },
+        { "expr": "rate(haproxy_frontend_http_responses_total{proxy=\"http_front\",code=\"5xx\"}[1m])", "legendFormat": "5xx" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 6, "title": "Trafic réseau HAProxy (bytes/s)",
+      "gridPos": { "x": 12, "y": 5, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "binBps", "color": { "mode": "palette-classic" } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "rate(haproxy_frontend_bytes_in_total{proxy=\"http_front\"}[1m])",  "legendFormat": "entrée" },
+        { "expr": "rate(haproxy_frontend_bytes_out_total{proxy=\"http_front\"}[1m])", "legendFormat": "sortie" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 9, "title": "Erreurs et refus frontend",
+      "gridPos": { "x": 0, "y": 13, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops", "color": { "mode": "palette-classic" } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "rate(haproxy_frontend_request_errors_total{proxy=\"http_front\"}[1m])", "legendFormat": "requêtes invalides" },
+        { "expr": "rate(haproxy_frontend_requests_denied_total{proxy=\"http_front\"}[1m])", "legendFormat": "requêtes refusées" },
+        { "expr": "rate(haproxy_frontend_responses_denied_total{proxy=\"http_front\"}[1m])", "legendFormat": "réponses refusées" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 14, "title": "Répartition HAProxy vers backends",
+      "gridPos": { "x": 12, "y": 13, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps", "color": { "mode": "palette-classic" } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "sum(rate(haproxy_server_http_responses_total{proxy=\"nginx_backends\",server=\"artweb01p\"}[1m]))", "legendFormat": "artweb01p" },
+        { "expr": "sum(rate(haproxy_server_http_responses_total{proxy=\"nginx_backends\",server=\"artweb02p\"}[1m]))", "legendFormat": "artweb02p" }
+      ]
+    },
+
+    { "type": "row", "id": 30, "title": "Services fichiers — SFTP / NFS", "collapsed": false,
+      "gridPos": { "x": 0, "y": 20, "w": 24, "h": 1 } },
+
+    {
+      "type": "timeseries", "id": 31, "title": "Disponibilité services fichiers",
+      "gridPos": { "x": 0, "y": 21, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "min": 0, "max": 1, "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "probe_success{job=\"blackbox_tcp\",instance=\"artsft02p:22\"}", "legendFormat": "SFTP artsft02p" },
+        { "expr": "probe_success{job=\"blackbox_tcp\",instance=\"artnfs01p:2049\"}", "legendFormat": "NFS artnfs01p" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 32, "title": "Latence services fichiers (ms)",
+      "gridPos": { "x": 12, "y": 21, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "probe_duration_seconds{job=\"blackbox_tcp\",instance=\"artsft02p:22\"} * 1000", "legendFormat": "SFTP artsft02p" },
+        { "expr": "probe_duration_seconds{job=\"blackbox_tcp\",instance=\"artnfs01p:2049\"} * 1000", "legendFormat": "NFS artnfs01p" }
+      ]
+    },
+
+    { "type": "row", "id": 20, "title": "Connectivité — Backends Nginx", "collapsed": false,
+      "gridPos": { "x": 0, "y": 28, "w": 24, "h": 1 } },
+
+    {
+      "type": "timeseries", "id": 21, "title": "Disponibilité backends (HTTP + Ping)",
+      "gridPos": { "x": 0, "y": 29, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "min": 0, "max": 1, "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "probe_success{job=\"blackbox_http\",instance=\"http://artweb01p\"}", "legendFormat": "HTTP artweb01p" },
+        { "expr": "probe_success{job=\"blackbox_http\",instance=\"http://artweb02p\"}", "legendFormat": "HTTP artweb02p" },
+        { "expr": "probe_success{job=\"blackbox_ping\",instance=\"artweb01p\"}", "legendFormat": "Ping artweb01p" },
+        { "expr": "probe_success{job=\"blackbox_ping\",instance=\"artweb02p\"}", "legendFormat": "Ping artweb02p" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 22, "title": "Latence backends (ms)",
+      "gridPos": { "x": 12, "y": 29, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "probe_duration_seconds{job=\"blackbox_http\",instance=\"http://artweb01p\"} * 1000", "legendFormat": "HTTP artweb01p" },
+        { "expr": "probe_duration_seconds{job=\"blackbox_http\",instance=\"http://artweb02p\"} * 1000", "legendFormat": "HTTP artweb02p" },
+        { "expr": "probe_duration_seconds{job=\"blackbox_ping\",instance=\"artweb01p\"} * 1000", "legendFormat": "Ping artweb01p" },
+        { "expr": "probe_duration_seconds{job=\"blackbox_ping\",instance=\"artweb02p\"} * 1000", "legendFormat": "Ping artweb02p" }
+      ]
+    },
+
+    { "type": "row", "id": 10, "title": "Nginx — Web Backends", "collapsed": false,
+      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 1 } },
+
+    {
+      "type": "timeseries", "id": 11, "title": "Connexions actives Nginx",
+      "gridPos": { "x": 0, "y": 37, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "palette-classic" } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "nginx_connections_active{instance=\"artweb01p:9113\"}", "legendFormat": "artweb01p" },
+        { "expr": "nginx_connections_active{instance=\"artweb02p:9113\"}", "legendFormat": "artweb02p" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 12, "title": "Requêtes Nginx (req/s)",
+      "gridPos": { "x": 8, "y": 37, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps", "color": { "mode": "palette-classic" } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "rate(nginx_http_requests_total{instance=\"artweb01p:9113\"}[1m])", "legendFormat": "artweb01p" },
+        { "expr": "rate(nginx_http_requests_total{instance=\"artweb02p:9113\"}[1m])", "legendFormat": "artweb02p" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 13, "title": "États des connexions Nginx",
+      "gridPos": { "x": 16, "y": 37, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "fillOpacity": 20 } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "nginx_connections_reading",  "legendFormat": "lecture  ({{instance}})" },
+        { "expr": "nginx_connections_writing",  "legendFormat": "écriture ({{instance}})" },
+        { "expr": "nginx_connections_waiting",  "legendFormat": "attente  ({{instance}})" }
+      ]
+    }
+
+  ],
+
+  "__inputs": [],
+  "__requires": []
+}

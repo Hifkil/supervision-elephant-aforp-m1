@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zabbix_export>
+    <version>7.0</version>
+    <hosts>
+
+        <!-- ── artweb01p — nginx backend 1 ───────────────────────────────── -->
+        <host>
+            <host>artweb01p</host>
+            <name>artweb01p</name>
+            <groups>
+                <group>
+                    <name>Linux servers</name>
+                </group>
+            </groups>
+            <interfaces>
+                <interface>
+                    <default>YES</default>
+                    <ip/>
+                    <dns>artweb01p</dns>
+                    <port>10050</port>
+                    <type>1</type>
+                    <useip>NO</useip>
+                </interface>
+            </interfaces>
+            <templates>
+                <template>
+                    <name>Linux by Zabbix agent 2</name>
+                </template>
+                <template>
+                    <name>Nginx by Zabbix agent 2</name>
+                </template>
+            </templates>
+            <macros>
+                <macro>
+                    <macro>{$NGINX.STUB_STATUS.HOST}</macro>
+                    <value>127.0.0.1</value>
+                    <type>TEXT</type>
+                </macro>
+                <macro>
+                    <macro>{$NGINX.STUB_STATUS.PORT}</macro>
+                    <value>80</value>
+                    <type>TEXT</type>
+                </macro>
+                <macro>
+                    <macro>{$NGINX.STUB_STATUS.PATH}</macro>
+                    <value>/nginx_status</value>
+                    <type>TEXT</type>
+                </macro>
+            </macros>
+        </host>
+
+        <!-- ── artweb02p — nginx backend 2 ───────────────────────────────── -->
+        <host>
+            <host>artweb02p</host>
+            <name>artweb02p</name>
+            <groups>
+                <group>
+                    <name>Linux servers</name>
+                </group>
+            </groups>
+            <interfaces>
+                <interface>
+                    <default>YES</default>
+                    <ip/>
+                    <dns>artweb02p</dns>
+                    <port>10050</port>
+                    <type>1</type>
+                    <useip>NO</useip>
+                </interface>
+            </interfaces>
+            <templates>
+                <template>
+                    <name>Linux by Zabbix agent 2</name>
+                </template>
+                <template>
+                    <name>Nginx by Zabbix agent 2</name>
+                </template>
+            </templates>
+            <macros>
+                <macro>
+                    <macro>{$NGINX.STUB_STATUS.HOST}</macro>
+                    <value>127.0.0.1</value>
+                    <type>TEXT</type>
+                </macro>
+                <macro>
+                    <macro>{$NGINX.STUB_STATUS.PORT}</macro>
+                    <value>80</value>
+                    <type>TEXT</type>
+                </macro>
+                <macro>
+                    <macro>{$NGINX.STUB_STATUS.PATH}</macro>
+                    <value>/nginx_status</value>
+                    <type>TEXT</type>
+                </macro>
+            </macros>
+        </host>
+
+        <!-- ── arthpx01p — HAProxy load balancer ─────────────────────────── -->
+        <host>
+            <host>arthpx01p</host>
+            <name>arthpx01p</name>
+            <groups>
+                <group>
+                    <name>Linux servers</name>
+                </group>
+            </groups>
+            <interfaces>
+                <interface>
+                    <default>YES</default>
+                    <ip/>
+                    <dns>arthpx01p</dns>
+                    <port>10050</port>
+                    <type>1</type>
+                    <useip>NO</useip>
+                </interface>
+            </interfaces>
+            <templates>
+                <template>
+                    <name>Linux by Zabbix agent 2</name>
+                </template>
+                <template>
+                    <name>HAProxy by HTTP</name>
+                </template>
+            </templates>
+            <macros>
+                <macro>
+                    <macro>{$HAPROXY.STATS.URI}</macro>
+                    <value>/stats</value>
+                    <type>TEXT</type>
+                </macro>
+                <macro>
+                    <macro>{$HAPROXY.STATS.PORT}</macro>
+                    <value>8404</value>
+                    <type>TEXT</type>
+                </macro>
+            </macros>
+        </host>
+
+    </hosts>
+</zabbix_export>

@@ -1,0 +1,10 @@
+.aider*
+
+# Contexte local des assistants
+AGENTS.md
+CLAUDE.md
+
+# Caches locaux
+__pycache__/
+*.py[cod]
+.claude/

@@ -1,0 +1,309 @@
+networks:
+  artemis:
+    driver: bridge
+
+volumes:
+  zabbix-db:
+  grafana-data:
+  prometheus-data:
+  sftp-ssh-keys:
+  nfs-web:
+
+services:
+
+  # ── Base de données Zabbix ────────────────────────────────────────────────
+  artdb01p:
+    image: postgres:16-alpine
+    hostname: artdb01p
+    networks:
+      - artemis
+    environment:
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix_secret
+    volumes:
+      - zabbix-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zabbix"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Zabbix server ─────────────────────────────────────────────────────────
+  artzab01p:
+    image: zabbix/zabbix-server-pgsql:alpine-7.0-latest
+    hostname: artzab01p
+    networks:
+      - artemis
+    environment:
+      DB_SERVER_HOST: artdb01p
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix_secret
+    ports:
+      - "10051:10051"
+    depends_on:
+      artdb01p:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep zabbix_server > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # Sidecar : agent pour le host "Zabbix server" pré-configuré.
+  # Partage le namespace réseau d'artzab01p → joignable en 127.0.0.1:10050.
+  zabbix-agent-artzab01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artzab01p"
+    environment:
+      ZBX_SERVER_HOST: "127.0.0.1,artzab01p"
+      ZBX_HOSTNAME: artzab01p
+    depends_on:
+      - artzab01p
+    restart: unless-stopped
+
+  # ── Zabbix web ────────────────────────────────────────────────────────────
+  artzabweb01p:
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.0-latest
+    hostname: artzabweb01p
+    networks:
+      - artemis
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      DB_SERVER_HOST: artdb01p
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix_secret
+      PHP_TZ: Europe/Paris
+    ports:
+      - "8080:8080"
+    depends_on:
+      artzab01p:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/ping | grep -q pong"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # ── artweb01p — serveur web backend 1 ────────────────────────────────────
+  artweb01p:
+    build: ./nginx
+    hostname: artweb01p
+    networks:
+      - artemis
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  zabbix-agent-artweb01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artweb01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artweb01p
+    depends_on:
+      - artzab01p
+      - artweb01p
+    restart: unless-stopped
+
+  # ── artweb02p — serveur web backend 2 ────────────────────────────────────
+  artweb02p:
+    build: ./nginx
+    hostname: artweb02p
+    networks:
+      - artemis
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  zabbix-agent-artweb02p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artweb02p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artweb02p
+    depends_on:
+      - artzab01p
+      - artweb02p
+    restart: unless-stopped
+
+  # ── arthpx01p — HAProxy load balancer ────────────────────────────────────
+  arthpx01p:
+    build: ./haproxy
+    hostname: arthpx01p
+    networks:
+      - artemis
+    ports:
+      - "80:80"
+      - "8404:8404"
+      - "8405:8405"
+      - "8406:8406"
+    depends_on:
+      artweb01p:
+        condition: service_healthy
+      artweb02p:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8404/stats"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  zabbix-agent-arthpx01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:arthpx01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: arthpx01p
+    depends_on:
+      - artzab01p
+      - arthpx01p
+    restart: unless-stopped
+
+  # ── artsft02p — serveur SFTP pour sauvegarde web ─────────────────────────
+  artsft02p:
+    image: atmoz/sftp:alpine
+    hostname: artsft02p
+    networks:
+      - artemis
+    command: artemis:artemis:1001:::web
+    ports:
+      - "2222:22"
+    volumes:
+      - ./sftp/web:/home/artemis/web
+      - sftp-ssh-keys:/etc/ssh
+      - ./sftp/init.d:/etc/sftp.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 22"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── artnfs01p — serveur NFS pour sauvegarde web ──────────────────────────
+  artnfs01p:
+    image: itsthenetwork/nfs-server-alpine:latest
+    hostname: artnfs01p
+    networks:
+      - artemis
+    privileged: true
+    environment:
+      SHARED_DIRECTORY: /exports/web
+    volumes:
+      - nfs-web:/exports/web
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 2049"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  # ── artbbx01p — Blackbox Exporter (probes HTTP / ICMP) ───────────────────
+  artbbx01p:
+    image: prom/blackbox-exporter:latest
+    hostname: artbbx01p
+    networks:
+      - artemis
+    volumes:
+      - ./blackbox/config.yml:/etc/blackbox_exporter/config.yml:ro
+    cap_add:
+      - NET_RAW
+    restart: unless-stopped
+
+  # ── Exporters Prometheus : nginx ─────────────────────────────────────────
+  nginx-exporter-artweb01p:
+    image: nginx/nginx-prometheus-exporter:latest
+    network_mode: "service:artweb01p"
+    command: ["--nginx.scrape-uri=http://127.0.0.1/nginx_status"]
+    depends_on:
+      - artweb01p
+    restart: unless-stopped
+
+  nginx-exporter-artweb02p:
+    image: nginx/nginx-prometheus-exporter:latest
+    network_mode: "service:artweb02p"
+    command: ["--nginx.scrape-uri=http://127.0.0.1/nginx_status"]
+    depends_on:
+      - artweb02p
+    restart: unless-stopped
+
+  # ── artprom01p — Prometheus ───────────────────────────────────────────────
+  artprom01p:
+    image: prom/prometheus:latest
+    hostname: artprom01p
+    networks:
+      - artemis
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy | grep -q Healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── artgrf01p — Grafana dashboards ───────────────────────────────────────
+  artgrf01p:
+    image: grafana/grafana:11.5.2
+    hostname: artgrf01p
+    networks:
+      - artemis
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: grafana
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      artprom01p:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # ── artnag01p — Nagios monitoring ─────────────────────────────────────────
+  artnag01p:
+    image: jasonrivers/nagios:latest
+    hostname: artnag01p
+    networks:
+      - artemis
+    ports:
+      - "8081:80"
+    volumes:
+      - ./nagios/conf.d:/opt/nagios/etc/conf.d
+      - ./nagios/localhost.cfg:/opt/nagios/etc/objects/localhost.cfg
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -u nagiosadmin:nagios http://localhost/nagios/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
