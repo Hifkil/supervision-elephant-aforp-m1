@@ -3,6 +3,20 @@ apiVersion: 1
 deleteRules:
   - orgId: 1
     uid: artemis-haproxy-frontend-down
+  - orgId: 1
+    uid: artemis-frontend-health
+  - orgId: 1
+    uid: artemis-web-backends-health
+  - orgId: 1
+    uid: artemis-file-services-health
+  - orgId: 1
+    uid: artemis-database-health
+  - orgId: 1
+    uid: artemis-backup-health
+  - orgId: 1
+    uid: artemis-platform-capacity
+  - orgId: 1
+    uid: artemis-monitoring-stack-health
 
 groups:
   - orgId: 1
@@ -11,6 +25,7 @@ groups:
     interval: 30s
     rules:
       - uid: artemis-frontend-health
+        guid: artemis-frontend-health
         title: Artemis frontend HAProxy problem
         condition: C
         data:
@@ -83,6 +98,7 @@ groups:
     interval: 30s
     rules:
       - uid: artemis-web-backends-health
+        guid: artemis-web-backends-health
         title: Artemis web backend problem
         condition: C
         data:
@@ -155,6 +171,7 @@ groups:
     interval: 30s
     rules:
       - uid: artemis-file-services-health
+        guid: artemis-file-services-health
         title: Artemis file service problem
         condition: C
         data:
@@ -227,6 +244,7 @@ groups:
     interval: 30s
     rules:
       - uid: artemis-database-health
+        guid: artemis-database-health
         title: Artemis PostgreSQL cluster problem
         condition: C
         data:
@@ -299,6 +317,7 @@ groups:
     interval: 30s
     rules:
       - uid: artemis-backup-health
+        guid: artemis-backup-health
         title: Artemis backup problem
         condition: C
         data:
@@ -371,6 +390,7 @@ groups:
     interval: 30s
     rules:
       - uid: artemis-platform-capacity
+        guid: artemis-platform-capacity
         title: Artemis platform capacity problem
         condition: C
         data:
@@ -443,6 +463,7 @@ groups:
     interval: 30s
     rules:
       - uid: artemis-monitoring-stack-health
+        guid: artemis-monitoring-stack-health
         title: Artemis monitoring stack problem
         condition: C
         data:
