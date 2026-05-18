@@ -71,6 +71,10 @@ Services fichiers
     ├── artsft02p  SFTP (sauvegarde /web)
     └── artnfs01p  NFS  (sauvegarde /web)
 
+Base de données
+    ├── artbdd01p  PostgreSQL primaire
+    └── artbdd02p  PostgreSQL réplique
+
 Supervision
     ├── artzab01p   Zabbix Server
     ├── artzabweb01p Zabbix Interface web
@@ -109,16 +113,16 @@ put ./mon-fichier.txt
 
 ---
 
-## Configuration initiale de Zabbix (première fois uniquement)
+## Configuration initiale de Zabbix
 
-Après le premier démarrage, Zabbix ne supervise aucun hôte. Lancez le script de configuration automatique :
+Après le démarrage, `./up.sh` lance automatiquement les scripts de configuration Zabbix :
 
 ```bash
 ./zabbix/setup-hosts.sh
 ./zabbix/setup-dashboard.py
 ```
 
-Ce script crée les trois hôtes Artemis avec leurs templates et macros :
+Ces scripts restent relançables manuellement si besoin. Ils créent les quatre hôtes Artemis avec leurs templates et macros :
 
 ```
   Zabbix — Setup des hosts Artemis
@@ -126,22 +130,23 @@ Ce script crée les trois hôtes Artemis avec leurs templates et macros :
 
   Authentification...          ✓
   Templates & groupes...       ✓
+  artzab01p                    ✓  UP
   artweb01p                    ✓  UP
   artweb02p                    ✓  UP
   arthpx01p                    ✓  UP
 ```
 
-> **Important :** Ce script n'est nécessaire qu'au premier démarrage, ou si vous avez arrêté le lab avec `docker compose down -v` (suppression des volumes = perte de la base de données Zabbix).
+> **Important :** après `docker compose down -v`, `./up.sh` recrée automatiquement les hosts et le dashboard Zabbix.
 
 ### Vérification dans Zabbix
 
 1. Ouvrez http://localhost:8080 → connexion avec `Admin` / `zabbix`
 2. Menu **Monitoring → Hosts**
-3. Les trois hôtes doivent apparaître avec le statut **ZBX** (agent) en vert
+3. Les hôtes Artemis doivent apparaître avec le statut **ZBX** (agent) en vert
 
 ### Dashboard Zabbix
 
-Un dashboard **"Artemis Supervision"** est créé dans Zabbix. Ouvrez **Dashboards → All dashboards → Artemis Supervision** pour suivre les problèmes courants, la disponibilité des agents, l'état HAProxy, le trafic HAProxy et les métriques CPU/RAM des backends web.
+Un dashboard **"Artemis Supervision"** est créé dans Zabbix. Ouvrez **Dashboards → All dashboards → Artemis Supervision** pour suivre les problèmes courants, la disponibilité des agents, les statuts applicatifs, HAProxy/Nginx, CPU/RAM par tiers, réseau, latence PostgreSQL et santé de la pile de supervision.
 
 ---
 
@@ -153,7 +158,7 @@ Un dashboard **"Artemis Supervision"** est créé dans Zabbix. Ouvrez **Dashboar
 docker compose down
 ```
 
-Les données Zabbix sont conservées dans un volume Docker. Au prochain démarrage, pas besoin de relancer `setup-hosts.sh`.
+Les données Zabbix sont conservées dans un volume Docker. Au prochain démarrage, `./up.sh` vérifie et met à jour la configuration automatiquement.
 
 ### Arrêt complet avec remise à zéro
 
@@ -161,7 +166,7 @@ Les données Zabbix sont conservées dans un volume Docker. Au prochain démarra
 docker compose down -v
 ```
 
-**Attention :** cette commande supprime toutes les données (base Zabbix, historique Grafana). Il faudra relancer `setup-hosts.sh` au prochain démarrage.
+**Attention :** cette commande supprime toutes les données (base Zabbix, historique Grafana). `./up.sh` recréera la configuration Zabbix au prochain démarrage.
 
 ---
 
@@ -171,11 +176,18 @@ Nagios vérifie automatiquement toutes les **minutes** :
 
 | Hôte | Checks |
 |------|--------|
-| artweb01p | PING, HTTP (port 80), Nginx Status |
-| artweb02p | PING, HTTP (port 80), Nginx Status |
-| arthpx01p | PING, HTTP via HAProxy, HAProxy Stats (port 8404) |
+| artweb01p | PING, HTTP, contenu HTTP, Nginx Status, Nginx exporter |
+| artweb02p | PING, HTTP, contenu HTTP, Nginx Status, Nginx exporter |
+| arthpx01p | PING, HTTP via HAProxy, contenu HTTP, stats HAProxy, métriques Prometheus HAProxy, CSV Zabbix |
 | artsft02p | PING, SFTP TCP (port 22) |
 | artnfs01p | PING, NFS TCP (port 2049) |
+| artbdd01p | PING, PostgreSQL TCP, exporter `pg_up`, rôle primaire, flux de réplication |
+| artbdd02p | PING, PostgreSQL TCP, exporter `pg_up`, rôle réplique, métrique de lag |
+| artdb01p | PING, PostgreSQL TCP de la base Zabbix |
+| artzab01p / artzabweb01p | PING, port serveur Zabbix, endpoint `/ping` web |
+| artbkp01p | PING, endpoint métriques backup, compteur de fichiers copiés |
+| artbbx01p / artmet01p | PING, métriques Blackbox, métriques Docker et volumes |
+| artprom01p / artgrf01p / artnag01p | PING, santé Prometheus, API Grafana, interface Nagios |
 
 Accédez aux résultats : http://localhost:8081/nagios → **Services**
 
@@ -195,13 +207,15 @@ Le dashboard contient :
 | **HAProxy** | Statut artweb01p / artweb02p, sessions actives, taux de requêtes HTTP, trafic réseau |
 | **Connectivité backends** | Disponibilité HTTP + Ping ICMP, latence en ms |
 | **Services fichiers** | Disponibilité TCP SFTP/NFS via Blackbox |
+| **Base de données** | Disponibilité PostgreSQL, exporter PostgreSQL, activité de la base Artemis |
 | **Nginx** | Connexions actives, requêtes/s, états des connexions |
+| **Disque** | Occupation des volumes Docker |
 
 > La datasource Prometheus est configurée automatiquement — aucune manipulation requise.
 
 ### Alertes Grafana
 
-Une alerte provisionnée **"Artemis lab health problem"** est disponible dans **Alerting → Alert rules → Artemis**. Elle passe en alerte si le frontend HAProxy est down, si un backend Nginx est down côté HAProxy, si une cible Prometheus est down, si un probe Blackbox HTTP/SFTP/NFS échoue, ou si HAProxy retourne des erreurs HTTP 5xx.
+Les alertes provisionnées sont disponibles dans **Alerting → Alert rules → Artemis**. Elles sont séparées par domaine : frontend HAProxy, backends web, services fichiers, base de données PostgreSQL, sauvegarde, capacité plateforme et pile de supervision.
 
 ---
 
@@ -212,8 +226,13 @@ Une alerte provisionnée **"Artemis lab health problem"** est disponible dans **
 | artweb01p | Linux by Zabbix agent + Nginx by Zabbix agent |
 | artweb02p | Linux by Zabbix agent + Nginx by Zabbix agent |
 | arthpx01p | Linux by Zabbix agent + HAProxy by HTTP |
+| artbdd01p / artbdd02p | Linux by Zabbix agent |
+| artsft02p / artnfs01p / artbkp01p | Linux by Zabbix agent |
+| artprom01p / artgrf01p / artnag01p / artbbx01p / artmet01p | Linux by Zabbix agent |
 
 Le template **HAProxy by HTTP** collecte les métriques via la page de stats CSV de HAProxy (port 8406), sans passer par l'agent.
+
+Des items Zabbix supplémentaires sont créés par `setup-hosts.sh` pour les checks applicatifs simples : ports PostgreSQL, SFTP/NFS, endpoint backup, Prometheus, Grafana, Nagios, Blackbox et exporter Docker. Ils alimentent les widgets de statut et les graphes de latence du dashboard Zabbix.
 
 ---
 

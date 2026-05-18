@@ -8,3 +8,7 @@ CLAUDE.md
 __pycache__/
 *.py[cod]
 .claude/
+
+# Données générées par le lab
+sftp/web/*
+!sftp/web/.gitkeep

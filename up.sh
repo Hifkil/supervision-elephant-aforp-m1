@@ -71,42 +71,100 @@ check_service() {
   echo -e "      ${DIM}→ docker compose logs $service${RESET}"
 }
 
+print_access_row() {
+  local name="$1"
+  local url="$2"
+  local login="${3:-Aucun}"
+  local note="${4:-}"
+
+  printf "  %-18b %-36b %-24b" "$name" "${CYAN}${url}${RESET}" "$login"
+  if [ -n "$note" ]; then
+    printf "%b" "${DIM}${note}${RESET}"
+  fi
+  echo ""
+}
+
+configure_zabbix() {
+  echo ""
+  echo -e "${BOLD}  Configuration Zabbix${RESET}"
+  echo -e "${DIM}  ──────────────────────────────────────────${RESET}"
+
+  if ./zabbix/setup-hosts.sh && ./zabbix/setup-dashboard.py; then
+    echo -e "  ${GREEN}✓  Hosts et dashboard Artemis prêts${RESET}"
+  else
+    echo -e "  ${RED}✗  Configuration Zabbix incomplète${RESET}"
+    echo -e "      ${DIM}→ relancer ./zabbix/setup-hosts.sh puis ./zabbix/setup-dashboard.py${RESET}"
+  fi
+}
+
 # ── Vérification dans l'ordre de démarrage ────────────────────────────────────
 echo -e "${BOLD}  État des services${RESET}"
 echo -e "${DIM}  ──────────────────────────────────────────${RESET}"
 
 check_service "artdb01p"              artdb01p
 check_service "artzab01p"             artzab01p
+check_service "agent → artdb01p"      zabbix-agent-artdb01p
 check_service "agent → artzab01p"     zabbix-agent-artzab01p
 check_service "artzabweb01p"          artzabweb01p
+check_service "agent → artzabweb01p"  zabbix-agent-artzabweb01p
 check_service "artweb01p"             artweb01p
 check_service "artweb02p"             artweb02p
 check_service "arthpx01p"             arthpx01p
+check_service "artbdd01p"             artbdd01p
+check_service "artbdd02p"             artbdd02p
+check_service "agent → artbdd01p"     zabbix-agent-artbdd01p
+check_service "agent → artbdd02p"     zabbix-agent-artbdd02p
 check_service "artsft02p"             artsft02p
+check_service "agent → artsft02p"     zabbix-agent-artsft02p
 check_service "artnfs01p"             artnfs01p
+check_service "agent → artnfs01p"     zabbix-agent-artnfs01p
+check_service "artbkp01p"             artbkp01p
+check_service "agent → artbkp01p"     zabbix-agent-artbkp01p
 check_service "agent → artweb01p"     zabbix-agent-artweb01p
 check_service "agent → artweb02p"     zabbix-agent-artweb02p
 check_service "agent → arthpx01p"     zabbix-agent-arthpx01p
+check_service "artbbx01p"             artbbx01p
+check_service "agent → artbbx01p"     zabbix-agent-artbbx01p
+check_service "artmet01p"             artmet01p
+check_service "agent → artmet01p"     zabbix-agent-artmet01p
 check_service "artprom01p"            artprom01p
+check_service "agent → artprom01p"    zabbix-agent-artprom01p
 check_service "artgrf01p"             artgrf01p
+check_service "agent → artgrf01p"     zabbix-agent-artgrf01p
 check_service "artnag01p"             artnag01p
+check_service "agent → artnag01p"     zabbix-agent-artnag01p
+
+configure_zabbix
 
 # ── Récapitulatif des accès ───────────────────────────────────────────────────
 echo ""
-echo -e "${BOLD}  Accès${RESET}"
+echo -e "${BOLD}  Accès web et identifiants${RESET}"
 echo -e "${DIM}  ──────────────────────────────────────────${RESET}"
-echo -e "  HAProxy  (web)    ${CYAN}http://localhost${RESET}"
-echo -e "  HAProxy  (stats)  ${CYAN}http://localhost:8404/stats${RESET}"
-echo -e "  SFTP              ${CYAN}sftp://localhost:2222${RESET} ${DIM}(artemis/artemis)${RESET}"
-echo -e "  Zabbix            ${CYAN}http://localhost:8080${RESET}"
-echo -e "  Nagios            ${CYAN}http://localhost:8081/nagios${RESET}
-  Prometheus        ${CYAN}http://localhost:9090${RESET}
-  Grafana           ${CYAN}http://localhost:3000${RESET}"
+printf "  %-18s %-36s %-24s%s\n" "Service" "URL" "Login" "Note"
+print_access_row "HAProxy web" "http://localhost" "Aucun" "point d'entrée applicatif"
+print_access_row "HAProxy stats" "http://localhost:8404/stats" "Aucun" "état frontend/backends"
+print_access_row "Zabbix" "http://localhost:8080" "Admin / zabbix" "supervision agents"
+print_access_row "Nagios" "http://localhost:8081/nagios" "nagiosadmin / nagios" "checks actifs"
+print_access_row "Prometheus" "http://localhost:9090" "Aucun" "métriques et targets"
+print_access_row "Grafana" "http://localhost:3000" "admin / grafana" "dashboard Artemis"
 echo ""
-echo -e "  ${BOLD}Login Zabbix${RESET}"
-echo -e "    Utilisateur   ${BOLD}Admin${RESET}  /  Mot de passe  ${BOLD}zabbix${RESET}"
-echo -e "  ${BOLD}Login Nagios${RESET}"
-echo -e "    Utilisateur   ${BOLD}nagiosadmin${RESET}  /  Mot de passe  ${BOLD}nagios${RESET}"
-echo -e "  ${BOLD}Login Grafana${RESET}"
-echo -e "    Utilisateur   ${BOLD}admin${RESET}  /  Mot de passe  ${BOLD}grafana${RESET}"
+echo -e "${BOLD}  Accès fichiers${RESET}"
+echo -e "${DIM}  ──────────────────────────────────────────${RESET}"
+echo -e "  SFTP              ${CYAN}sftp -P 2222 artemis@localhost${RESET}"
+echo -e "  Identifiants      utilisateur ${BOLD}artemis${RESET} / mot de passe ${BOLD}artemis${RESET}"
+echo -e "  Répertoire        ${BOLD}/web${RESET} côté SFTP, monté depuis ${BOLD}./sftp/web${RESET}"
+echo -e "  Sauvegarde        ${BOLD}artbkp01p${RESET} copie ${BOLD}./backup/source${RESET} vers SFTP et NFS toutes les 5 min"
+echo ""
+echo -e "${BOLD}  Initialisation Zabbix${RESET}"
+echo -e "${DIM}  ──────────────────────────────────────────${RESET}"
+echo -e "  Hosts et dashboard créés automatiquement par ${CYAN}./up.sh${RESET}"
+echo -e "  Relance manuelle possible : ${CYAN}./zabbix/setup-hosts.sh && ./zabbix/setup-dashboard.py${RESET}"
+echo ""
+echo -e "${BOLD}  Commandes utiles${RESET}"
+echo -e "${DIM}  ──────────────────────────────────────────${RESET}"
+echo -e "  État des conteneurs     ${CYAN}docker compose ps${RESET}"
+echo -e "  Logs d'un service       ${CYAN}docker compose logs <service>${RESET}"
+echo -e "  Validation Compose      ${CYAN}docker compose config${RESET}"
+echo -e "  Arrêt du lab            ${CYAN}./down.sh${RESET}"
+echo -e "  Reset complet           ${CYAN}docker compose down -v${RESET}"
 echo ""

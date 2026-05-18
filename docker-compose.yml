@@ -4,6 +4,8 @@ networks:
 
 volumes:
   zabbix-db:
+  artbdd01p-data:
+  artbdd02p-data:
   grafana-data:
   prometheus-data:
   sftp-ssh-keys:
@@ -28,6 +30,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+
+  zabbix-agent-artdb01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artdb01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artdb01p
+    depends_on:
+      - artzab01p
+      - artdb01p
     restart: unless-stopped
 
   # ── Zabbix server ─────────────────────────────────────────────────────────
@@ -90,6 +103,17 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    restart: unless-stopped
+
+  zabbix-agent-artzabweb01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artzabweb01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artzabweb01p
+    depends_on:
+      - artzab01p
+      - artzabweb01p
     restart: unless-stopped
 
   # ── artweb01p — serveur web backend 1 ────────────────────────────────────
@@ -174,6 +198,98 @@ services:
       - arthpx01p
     restart: unless-stopped
 
+  # ── artbdd01p / artbdd02p — cluster PostgreSQL Artemis ──────────────────
+  artbdd01p:
+    image: postgres:16-alpine
+    hostname: artbdd01p
+    networks:
+      - artemis
+    environment:
+      POSTGRES_DB: artemis
+      POSTGRES_USER: artemis
+      POSTGRES_PASSWORD: artemis
+      POSTGRES_REPLICATION_USER: repl_user
+      POSTGRES_REPLICATION_PASSWORD: repl_secret
+    volumes:
+      - artbdd01p-data:/var/lib/postgresql/data
+      - ./postgres/primary/init-replication.sh:/docker-entrypoint-initdb.d/10-replication.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U artemis -d artemis -h 127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  zabbix-agent-artbdd01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artbdd01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artbdd01p
+    depends_on:
+      - artzab01p
+      - artbdd01p
+    restart: unless-stopped
+
+  artbdd02p:
+    image: postgres:16-alpine
+    hostname: artbdd02p
+    networks:
+      - artemis
+    environment:
+      POSTGRES_DB: artemis
+      POSTGRES_USER: artemis
+      POSTGRES_PASSWORD: artemis
+      POSTGRES_REPLICATION_USER: repl_user
+      POSTGRES_REPLICATION_PASSWORD: repl_secret
+      POSTGRES_PRIMARY_HOST: artbdd01p
+    volumes:
+      - artbdd02p-data:/var/lib/postgresql/data
+      - ./postgres/replica/start-replica.sh:/usr/local/bin/start-replica.sh:ro
+    command: ["bash", "/usr/local/bin/start-replica.sh"]
+    depends_on:
+      artbdd01p:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U artemis -d artemis -h 127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  zabbix-agent-artbdd02p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artbdd02p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artbdd02p
+    depends_on:
+      - artzab01p
+      - artbdd02p
+    restart: unless-stopped
+
+  postgres-exporter-artbdd01p:
+    image: prometheuscommunity/postgres-exporter:latest
+    network_mode: "service:artbdd01p"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://artemis:artemis@127.0.0.1:5432/artemis?sslmode=disable"
+    depends_on:
+      artbdd01p:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres-exporter-artbdd02p:
+    image: prometheuscommunity/postgres-exporter:latest
+    network_mode: "service:artbdd02p"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://artemis:artemis@127.0.0.1:5432/artemis?sslmode=disable"
+    depends_on:
+      artbdd02p:
+        condition: service_healthy
+    restart: unless-stopped
+
   # ── artsft02p — serveur SFTP pour sauvegarde web ─────────────────────────
   artsft02p:
     image: atmoz/sftp:alpine
@@ -195,6 +311,17 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  zabbix-agent-artsft02p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artsft02p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artsft02p
+    depends_on:
+      - artzab01p
+      - artsft02p
+    restart: unless-stopped
+
   # ── artnfs01p — serveur NFS pour sauvegarde web ──────────────────────────
   artnfs01p:
     image: itsthenetwork/nfs-server-alpine:latest
@@ -214,6 +341,51 @@ services:
       start_period: 15s
     restart: unless-stopped
 
+  zabbix-agent-artnfs01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artnfs01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artnfs01p
+    depends_on:
+      - artzab01p
+      - artnfs01p
+    restart: unless-stopped
+
+  # ── artbkp01p — preuve de sauvegarde web vers SFTP et NFS ────────────────
+  artbkp01p:
+    image: busybox:1.36.1
+    hostname: artbkp01p
+    networks:
+      - artemis
+    volumes:
+      - ./backup/source:/source:ro
+      - ./backup/run-backup.sh:/opt/artemis/run-backup.sh:ro
+      - ./sftp/web:/backup/sftp
+      - nfs-web:/backup/nfs
+    command: ["/bin/sh", "/opt/artemis/run-backup.sh"]
+    depends_on:
+      - artsft02p
+      - artnfs01p
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/metrics | grep -q artemis_backup_last_status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  zabbix-agent-artbkp01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artbkp01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artbkp01p
+    depends_on:
+      - artzab01p
+      - artbkp01p
+    restart: unless-stopped
+
   # ── artbbx01p — Blackbox Exporter (probes HTTP / ICMP) ───────────────────
   artbbx01p:
     image: prom/blackbox-exporter:latest
@@ -224,6 +396,55 @@ services:
       - ./blackbox/config.yml:/etc/blackbox_exporter/config.yml:ro
     cap_add:
       - NET_RAW
+    restart: unless-stopped
+
+  zabbix-agent-artbbx01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artbbx01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artbbx01p
+    depends_on:
+      - artzab01p
+      - artbbx01p
+    restart: unless-stopped
+
+  # ── artmet01p — métriques système Docker par service Compose ─────────────
+  artmet01p:
+    image: docker:26-cli
+    hostname: artmet01p
+    networks:
+      - artemis
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker-metrics/exporter.sh:/usr/local/bin/exporter.sh:ro
+      - zabbix-db:/mnt/volumes/zabbix-db:ro
+      - artbdd01p-data:/mnt/volumes/artbdd01p-data:ro
+      - artbdd02p-data:/mnt/volumes/artbdd02p-data:ro
+      - grafana-data:/mnt/volumes/grafana-data:ro
+      - prometheus-data:/mnt/volumes/prometheus-data:ro
+      - sftp-ssh-keys:/mnt/volumes/sftp-ssh-keys:ro
+      - nfs-web:/mnt/volumes/nfs-web:ro
+    environment:
+      COMPOSE_PROJECT_NAME: supervision-elephant-aforp-m1
+    command: ["sh", "/usr/local/bin/exporter.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/metrics | grep -q artemis_container_cpu_percent"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  zabbix-agent-artmet01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artmet01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artmet01p
+    depends_on:
+      - artzab01p
+      - artmet01p
     restart: unless-stopped
 
   # ── Exporters Prometheus : nginx ─────────────────────────────────────────
@@ -265,6 +486,17 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  zabbix-agent-artprom01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artprom01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artprom01p
+    depends_on:
+      - artzab01p
+      - artprom01p
+    restart: unless-stopped
+
   # ── artgrf01p — Grafana dashboards ───────────────────────────────────────
   artgrf01p:
     image: grafana/grafana:11.5.2
@@ -289,6 +521,17 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  zabbix-agent-artgrf01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artgrf01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artgrf01p
+    depends_on:
+      - artzab01p
+      - artgrf01p
+    restart: unless-stopped
+
   # ── artnag01p — Nagios monitoring ─────────────────────────────────────────
   artnag01p:
     image: jasonrivers/nagios:latest
@@ -306,4 +549,15 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    restart: unless-stopped
+
+  zabbix-agent-artnag01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artnag01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artnag01p
+    depends_on:
+      - artzab01p
+      - artnag01p
     restart: unless-stopped

@@ -246,6 +246,151 @@
         { "expr": "nginx_connections_writing",  "legendFormat": "écriture ({{instance}})" },
         { "expr": "nginx_connections_waiting",  "legendFormat": "attente  ({{instance}})" }
       ]
+    },
+
+    { "type": "row", "id": 40, "title": "Système — Conteneurs Docker", "collapsed": false,
+      "gridPos": { "x": 0, "y": 45, "w": 24, "h": 1 } },
+
+    {
+      "type": "timeseries", "id": 41, "title": "CPU par conteneur (%)",
+      "gridPos": { "x": 0, "y": 46, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 80 }, { "color": "red", "value": 90 }] } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "artemis_container_cpu_percent", "legendFormat": "{{service}}" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 42, "title": "Mémoire par conteneur",
+      "gridPos": { "x": 12, "y": 46, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 80 }, { "color": "red", "value": 90 }] } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "artemis_container_memory_percent", "legendFormat": "{{service}}" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 43, "title": "Trafic réseau par conteneur",
+      "gridPos": { "x": 0, "y": 54, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "binBps", "color": { "mode": "palette-classic" } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "rate(artemis_container_network_receive_bytes_total[2m])", "legendFormat": "RX {{service}}" },
+        { "expr": "rate(artemis_container_network_transmit_bytes_total[2m])", "legendFormat": "TX {{service}}" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 44, "title": "I/O disque conteneurs",
+      "gridPos": { "x": 12, "y": 54, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "binBps", "min": 0, "color": { "mode": "palette-classic" } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "rate(artemis_container_block_read_bytes_total[2m])", "legendFormat": "read {{service}}" },
+        { "expr": "rate(artemis_container_block_write_bytes_total[2m])", "legendFormat": "write {{service}}" }
+      ]
+    },
+
+    { "type": "row", "id": 50, "title": "Sauvegarde — Web vers SFTP/NFS", "collapsed": false,
+      "gridPos": { "x": 0, "y": 62, "w": 24, "h": 1 } },
+
+    {
+      "type": "stat", "id": 51, "title": "État dernière sauvegarde",
+      "gridPos": { "x": 0, "y": 63, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "OK", "color": "green" } } },
+            { "type": "value", "options": { "1": { "text": "ERREUR", "color": "red" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
+        }
+      },
+      "targets": [{ "expr": "artemis_backup_last_status", "legendFormat": "" }]
+    },
+
+    {
+      "type": "stat", "id": 52, "title": "Âge sauvegarde (min)",
+      "gridPos": { "x": 6, "y": 63, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "value" },
+      "fieldConfig": { "defaults": { "unit": "m", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 30 }, { "color": "red", "value": 60 }] } } },
+      "targets": [{ "expr": "(time() - artemis_backup_last_success_timestamp_seconds) / 60", "legendFormat": "" }]
+    },
+
+    {
+      "type": "timeseries", "id": 53, "title": "Durée et fichiers copiés",
+      "gridPos": { "x": 12, "y": 63, "w": 12, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "palette-classic" } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "artemis_backup_last_duration_seconds", "legendFormat": "durée (s)" },
+        { "expr": "artemis_backup_copied_files", "legendFormat": "fichiers" }
+      ]
+    },
+
+    { "type": "row", "id": 60, "title": "Base de données — PostgreSQL Artemis", "collapsed": false,
+      "gridPos": { "x": 0, "y": 68, "w": 24, "h": 1 } },
+
+    {
+      "type": "timeseries", "id": 61, "title": "Disponibilité PostgreSQL",
+      "gridPos": { "x": 0, "y": 69, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "max": 1, "color": { "mode": "palette-classic" } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "probe_success{job=\"blackbox_tcp\",instance=\"artbdd01p:5432\"}", "legendFormat": "TCP primaire" },
+        { "expr": "probe_success{job=\"blackbox_tcp\",instance=\"artbdd02p:5432\"}", "legendFormat": "TCP réplique" },
+        { "expr": "pg_up{instance=\"artbdd01p:9187\"}", "legendFormat": "exporter primaire" },
+        { "expr": "pg_up{instance=\"artbdd02p:9187\"}", "legendFormat": "exporter réplique" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 62, "title": "Activité PostgreSQL Artemis",
+      "gridPos": { "x": 12, "y": 69, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops", "color": { "mode": "palette-classic" } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "rate(pg_stat_database_xact_commit{datname=\"artemis\"}[1m])", "legendFormat": "commits {{instance}}" },
+        { "expr": "rate(pg_stat_database_xact_rollback{datname=\"artemis\"}[1m])", "legendFormat": "rollbacks {{instance}}" },
+        { "expr": "pg_stat_database_numbackends{datname=\"artemis\"}", "legendFormat": "sessions {{instance}}" }
+      ]
+    },
+
+    { "type": "row", "id": 70, "title": "Disque — Volumes Docker", "collapsed": false,
+      "gridPos": { "x": 0, "y": 76, "w": 24, "h": 1 } },
+
+    {
+      "type": "timeseries", "id": 71, "title": "Occupation filesystem volumes (%)",
+      "gridPos": { "x": 0, "y": 77, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 80 }, { "color": "red", "value": 90 }] } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "artemis_volume_filesystem_used_percent", "legendFormat": "{{volume}}" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 72, "title": "Espace utilisé par volume",
+      "gridPos": { "x": 12, "y": 77, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes", "min": 0, "color": { "mode": "palette-classic" } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "artemis_volume_used_bytes", "legendFormat": "{{volume}}" }
+      ]
     }
 
   ],

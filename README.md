@@ -2,7 +2,7 @@
 
 Ce dépôt contient un lab Docker pour superviser une infrastructure Artemis avec **Zabbix**, **Nagios** et **Grafana + Prometheus**.
 
-Le lab simule une entrée web HAProxy, deux backends Nginx, des services de fichiers SFTP/NFS et une chaîne de supervision complète. Il sert de support pratique pour tester les checks, dashboards, alertes et seuils d'exploitation.
+Le lab simule une entrée web HAProxy, deux backends Nginx, un cluster PostgreSQL primaire/réplique, des services de fichiers SFTP/NFS et une chaîne de supervision complète. Il sert de support pratique pour tester les checks, dashboards, alertes et seuils d'exploitation.
 
 ## Contenu du dépôt
 
@@ -11,12 +11,15 @@ Le lab simule une entrée web HAProxy, deux backends Nginx, des services de fich
 | `docker-compose.yml` | Stack complète du lab |
 | `nginx/` | Configuration et image des backends web |
 | `haproxy/` | Configuration et image du load balancer |
+| `postgres/` | Scripts de réplication PostgreSQL primaire/réplique |
 | `prometheus/` | Configuration des scrape targets Prometheus |
 | `blackbox/` | Probes HTTP, TCP et ICMP |
 | `nagios/` | Checks Nagios des hôtes Artemis |
 | `grafana/provisioning/` | Datasource, dashboard et alerte Grafana |
-| `zabbix/` | Scripts et exports de configuration Zabbix |
+| `zabbix/` | Scripts de bootstrap de configuration Zabbix |
 | `sftp/` | Initialisation et volume web SFTP |
+| `backup/` | Payload source copié vers SFTP et NFS pour tester la supervision de sauvegarde |
+| `docker-metrics/` | Exporter léger des métriques CPU/RAM/réseau/disque par conteneur |
 | `Sujet/` | Documents sources du brief et du cours |
 | `PROCEDURE.md` | Procédure détaillée de démarrage, accès et dépannage |
 | `SUPERVISION_THRESHOLDS.md` | Seuils de supervision et logique d'alerte |
@@ -41,12 +44,7 @@ Lancements suivants, sans rebuild :
 ./up.sh
 ```
 
-Configuration initiale de Zabbix après le premier démarrage :
-
-```bash
-./zabbix/setup-hosts.sh
-./zabbix/setup-dashboard.py
-```
+`./up.sh` initialise automatiquement les hosts et le dashboard Zabbix après le démarrage de l'interface web.
 
 Arrêt simple, avec conservation des volumes :
 
@@ -84,7 +82,12 @@ arthpx01p  HAProxy
 
 Services fichiers
     |-- artsft02p  SFTP
-    `-- artnfs01p  NFS
+    |-- artnfs01p  NFS
+    `-- artbkp01p  Sauvegarde web simple
+
+Base de données
+    |-- artbdd01p  PostgreSQL primaire
+    `-- artbdd02p  PostgreSQL réplique
 
 Supervision
     |-- artzab01p     Zabbix Server
@@ -93,7 +96,8 @@ Supervision
     |-- artnag01p     Nagios
     |-- artprom01p    Prometheus
     |-- artgrf01p     Grafana
-    `-- artbbx01p     Blackbox Exporter
+    |-- artbbx01p     Blackbox Exporter
+    `-- artmet01p     Exporter métriques Docker
 ```
 
 ## Ce qui est supervisé
@@ -101,12 +105,18 @@ Supervision
 - Disponibilité HTTP des backends Nginx et du frontend HAProxy
 - Statut HAProxy et état des backends
 - Disponibilité SFTP et NFS
+- Disponibilité PostgreSQL primaire/réplique
 - Probes HTTP, TCP et ICMP via Blackbox Exporter
 - Métriques Linux via agents Zabbix
-- Métriques Nginx, HAProxy et targets Prometheus
+- Checks Zabbix applicatifs : ports PostgreSQL, SFTP/NFS, backup, Prometheus, Grafana, Nagios, Blackbox et exporter Docker
+- Métriques système Docker via `artmet01p` : CPU, RAM, réseau et I/O disque par conteneur
+- Métriques Nginx, HAProxy, PostgreSQL et targets Prometheus
+- Checks Nagios enrichis : contenus HTTP, exporters, rôles PostgreSQL primaire/réplique, métriques backup et santé de la pile de supervision
+- Occupation disque des volumes Docker
+- Sauvegarde simple de `backup/source` vers SFTP et NFS, avec métriques de fraîcheur et de statut
 - Dashboard Grafana **Artemis Supervision**
 - Dashboard Zabbix **Artemis Supervision**
-- Alerte Grafana consolidée **Artemis lab health problem**
+- Alertes Grafana séparées par domaine fonctionnel
 
 Les seuils fonctionnels sont documentés dans `SUPERVISION_THRESHOLDS.md`.
 

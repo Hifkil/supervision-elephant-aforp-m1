@@ -9,6 +9,22 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
+  # ── Docker metrics : CPU / RAM / disque / réseau par service Compose ─────
+  - job_name: docker_metrics
+    static_configs:
+      - targets: ['artmet01p:8080']
+        labels:
+          app: docker-metrics
+
+  # ── Backup web : statut et fraîcheur de la copie SFTP/NFS ────────────────
+  - job_name: artemis_backup
+    metrics_path: /metrics
+    fallback_scrape_protocol: PrometheusText0.0.4
+    static_configs:
+      - targets: ['artbkp01p:8080']
+        labels:
+          app: backup
+
   # ── Nginx : métriques stub_status exportées par nginx-prometheus-exporter ─
   - job_name: nginx
     static_configs:
@@ -18,6 +34,20 @@ scrape_configs:
         labels:
           app: nginx
 
+  # ── PostgreSQL Artemis : métriques primaire / réplique ───────────────────
+  - job_name: postgres
+    static_configs:
+      - targets:
+          - artbdd01p:9187
+        labels:
+          app: postgres
+          role: primary
+      - targets:
+          - artbdd02p:9187
+        labels:
+          app: postgres
+          role: replica
+
   # ── Blackbox : probe HTTP sur les backends Nginx ──────────────────────────
   - job_name: blackbox_http
     metrics_path: /probe
@@ -25,6 +55,7 @@ scrape_configs:
       module: [http_2xx]
     static_configs:
       - targets:
+          - http://arthpx01p
           - http://artweb01p
           - http://artweb02p
     relabel_configs:
@@ -61,6 +92,13 @@ scrape_configs:
       - targets:
           - artsft02p:22
           - artnfs01p:2049
+          - artbdd01p:5432
+          - artbdd02p:5432
+          - artzabweb01p:8080
+          - artnag01p:80
+          - artprom01p:9090
+          - artgrf01p:3000
+          - artbkp01p:8080
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target

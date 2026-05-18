@@ -1,13 +1,17 @@
 apiVersion: 1
 
+deleteRules:
+  - orgId: 1
+    uid: artemis-haproxy-frontend-down
+
 groups:
   - orgId: 1
-    name: Artemis lab health
+    name: Artemis frontend
     folder: Artemis
     interval: 30s
     rules:
-      - uid: artemis-haproxy-frontend-down
-        title: Artemis lab health problem
+      - uid: artemis-frontend-health
+        title: Artemis frontend HAProxy problem
         condition: C
         data:
           - refId: A
@@ -20,7 +24,7 @@ groups:
                 type: prometheus
                 uid: prometheus
               editorMode: code
-              expr: max((1 - haproxy_frontend_status{proxy="http_front",state="UP"}) or (1 - min(haproxy_server_status{proxy="nginx_backends",state="UP"})) or (1 - min(up)) or (1 - min(probe_success{job=~"blackbox_http|blackbox_tcp"})) or clamp_max(sum(rate(haproxy_frontend_http_responses_total{proxy="http_front",code="5xx"}[2m])) * 1000, 1))
+              expr: max((1 - max(haproxy_frontend_status{proxy="http_front",state="UP"})) or clamp_max(sum(rate(haproxy_frontend_http_responses_total{proxy="http_front",code="5xx"}[2m])) * 1000, 1) or vector(0))
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200
@@ -63,15 +67,444 @@ groups:
               expression: B
               refId: C
               type: threshold
-        dashboardUid: artemis-supervision
-        panelId: 7
         noDataState: Alerting
         execErrState: Alerting
         for: 1m
         annotations:
-          summary: Artemis supervision lab has a frontend or monitoring problem.
-          description: This alert fires if HAProxy http_front is down, one Nginx backend is down in HAProxy, any Prometheus target is down, an HTTP/SFTP/NFS Blackbox probe fails, or HAProxy returns frontend 5xx responses.
+          summary: HAProxy frontend is down or returns HTTP 5xx responses.
+        labels:
+          severity: critical
+          service: frontend
+        isPaused: false
+
+  - orgId: 1
+    name: Artemis web
+    folder: Artemis
+    interval: 30s
+    rules:
+      - uid: artemis-web-backends-health
+        title: Artemis web backend problem
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: max((1 - min(haproxy_server_status{proxy="nginx_backends",state="UP"})) or (1 - min(probe_success{job="blackbox_http",instance=~"http://artweb0[12]p"})) or (1 - min(probe_success{job="blackbox_ping",instance=~"artweb0[12]p"})) or vector(0))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: One or more Nginx backends are unavailable from HAProxy or probes.
+        labels:
+          severity: critical
+          service: web
+        isPaused: false
+
+  - orgId: 1
+    name: Artemis files
+    folder: Artemis
+    interval: 30s
+    rules:
+      - uid: artemis-file-services-health
+        title: Artemis file service problem
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: max((1 - min(probe_success{job="blackbox_tcp",instance=~"artsft02p:22|artnfs01p:2049"})) or vector(0))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: SFTP or NFS probe is failing.
         labels:
           severity: warning
-          service: artemis-lab
+          service: file-services
+        isPaused: false
+
+  - orgId: 1
+    name: Artemis database
+    folder: Artemis
+    interval: 30s
+    rules:
+      - uid: artemis-database-health
+        title: Artemis PostgreSQL cluster problem
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: max((1 - min(probe_success{job="blackbox_tcp",instance=~"artbdd0[12]p:5432"})) or (1 - min(up{job="postgres"})) or (1 - min(pg_up{job="postgres"})) or vector(0))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: PostgreSQL primary, replica, or exporter is unavailable.
+        labels:
+          severity: critical
+          service: database
+        isPaused: false
+
+  - orgId: 1
+    name: Artemis backup
+    folder: Artemis
+    interval: 30s
+    rules:
+      - uid: artemis-backup-health
+        title: Artemis backup problem
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: max(artemis_backup_last_status or ((time() - artemis_backup_last_success_timestamp_seconds) > bool 3600) or vector(0))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: Backup job failed or no successful backup was recorded in the last hour.
+        labels:
+          severity: warning
+          service: backup
+        isPaused: false
+
+  - orgId: 1
+    name: Artemis capacity
+    folder: Artemis
+    interval: 30s
+    rules:
+      - uid: artemis-platform-capacity
+        title: Artemis platform capacity problem
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: max((artemis_container_cpu_percent > bool 90) or (artemis_container_memory_percent > bool 90) or (artemis_volume_filesystem_used_percent > bool 90) or vector(0))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: Container CPU, memory, or volume disk usage exceeded the critical threshold.
+        labels:
+          severity: warning
+          service: platform
+        isPaused: false
+
+  - orgId: 1
+    name: Artemis monitoring
+    folder: Artemis
+    interval: 30s
+    rules:
+      - uid: artemis-monitoring-stack-health
+        title: Artemis monitoring stack problem
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: max((1 - min(probe_success{job="blackbox_tcp",instance=~"artzabweb01p:8080|artnag01p:80|artprom01p:9090|artgrf01p:3000"})) or (1 - min(up{job=~"prometheus|docker_metrics"})) or vector(0))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: One monitoring interface or core scrape target is unavailable.
+        labels:
+          severity: critical
+          service: monitoring
         isPaused: false
