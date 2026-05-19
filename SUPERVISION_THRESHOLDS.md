@@ -4,13 +4,13 @@ This file is the monitoring contract for the lab: it states what is watched, why
 
 ## Scope and Mapping
 
-The lab intentionally keeps a reduced, reproducible Artemis architecture: one HAProxy frontend, two Nginx web backends, one PostgreSQL primary/replica pair, SFTP/NFS file services, a simple backup job, and the monitoring stack. SMTP, LDAP/annuaire, VIP HAProxy and network zoning are out of scope by design. Graylog, Rsyslog or Splunk can be added later if the comparison needs a log/SIEM angle. In Docker, each container represents one Artemis machine; `artmet01p` exports the system metrics that would normally come from VM agents.
+The lab intentionally keeps a reduced, reproducible Artemis architecture: one HAProxy frontend, two Nginx web backends, one PostgreSQL primary/replica pair, one GLPI instance with a dedicated MySQL database, SFTP/NFS file services, a simple backup job, the monitoring stack, and a logs/SIEM chain with Rsyslog, Graylog and Splunk. SMTP, LDAP/annuaire, VIP HAProxy and network zoning are out of scope by design. In Docker, each container represents one Artemis machine; `artmet01p` exports the system metrics that would normally come from VM agents.
 
 ## Platform and Container Health
 
 | Metric | Applies to | Warning | Critical | Source |
 |---|---|---:|---:|---|
-| Container availability | All lab containers | missing scrape for 1 min | container stopped or missing for 5 min | Prometheus `up`, `artmet01p` |
+| Container availability | All Compose containers | missing scrape for 1 min | container stopped or missing for 5 min | `artemis_container_running`, Prometheus `up`, `artmet01p` |
 | CPU usage | All Artemis containers | > 80% for 5 min | > 90% for 5 min | `artemis_container_cpu_percent` |
 | Memory usage | All Artemis containers | > 80% for 5 min | > 90% for 5 min | `artemis_container_memory_percent` |
 | Block I/O | All Artemis containers | unusual sustained spike | service impact or saturation | `artmet01p` |
@@ -49,6 +49,29 @@ The lab intentionally keeps a reduced, reproducible Artemis architecture: one HA
 | Copied file count | lower than expected | zero files copied | `artemis_backup_copied_files` |
 | Backup storage usage | > 80% | > 90% | `artemis_volume_filesystem_used_percent` |
 
+## GLPI
+
+| Metric | Warning | Critical | Source |
+|---|---:|---:|---|
+| GLPI HTTP availability | failed once | failed for 1 min | Blackbox HTTP, Nagios, Zabbix simple check |
+| GLPI HTTP latency | > 500 ms | > 2 s | Blackbox HTTP, Zabbix simple check |
+| GLPI MySQL TCP port 3306 | failed once | failed for 1 min | Blackbox TCP, Nagios, Zabbix simple check |
+| GLPI volumes usage | > 80% | > 90% | `artemis_volume_filesystem_used_percent` |
+
+## Logs and SIEM
+
+| Metric | Warning | Critical | Source |
+|---|---:|---:|---|
+| Rsyslog TCP port 514 | failed once | failed for 1 min | Blackbox TCP, Nagios, Zabbix simple check |
+| Graylog API `:9000` | failed once | unavailable for 1 min | Blackbox HTTP/TCP, Nagios, Zabbix simple check |
+| Graylog Syslog input `:1514` | failed once | unavailable for 1 min | Blackbox TCP, Nagios, Zabbix simple check |
+| Graylog MongoDB `:27017` | failed once | unavailable for 1 min | Blackbox TCP, Nagios, Zabbix simple check |
+| Graylog OpenSearch `:9200` | failed once | unavailable for 1 min | Blackbox TCP, Nagios, Zabbix simple check |
+| Splunk Web `:8000` | failed once | unavailable for 1 min | Blackbox HTTP/TCP, Nagios, Zabbix simple check |
+| Splunk HEC `:8088` | failed once | unavailable for 1 min | Blackbox TCP, Nagios, Zabbix simple check |
+| Splunk Syslog input `:1515` | failed once | unavailable for 1 min | Blackbox TCP, Nagios, Zabbix simple check |
+| SIEM storage volumes | > 80% | > 90% | `artemis_volume_filesystem_used_percent` |
+
 ## Database Cluster
 
 | Metric | Warning | Critical | Source |
@@ -78,4 +101,4 @@ The lab intentionally keeps a reduced, reproducible Artemis architecture: one HA
 
 ## Grafana Alerts
 
-Grafana provisions separate rules by domain: frontend, web backends, file services, database, backup, platform resources and monitoring stack. Notification routing is intentionally not configured for this lab.
+Grafana provisions separate rules by domain: frontend, web backends, GLPI, SIEM/logs, file services, database, backup, platform resources and monitoring stack. Notification routing is intentionally not configured for this lab.

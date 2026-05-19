@@ -103,6 +103,13 @@ def main():
         "artweb02p",
         "artbdd01p",
         "artbdd02p",
+        "artglpt01p",
+        "artglptdb01p",
+        "artgrydb01p",
+        "artgryidx01p",
+        "artgry01p",
+        "artspl01p",
+        "artrsy01p",
         "artsft02p",
         "artnfs01p",
         "artbkp01p",
@@ -422,6 +429,110 @@ def main():
             ],
             "ART28",
         ),
+        item_widget(
+            "GLPI HTTP",
+            0,
+            53,
+            itemid("artglpt01p", "net.tcp.service[http,,80]"),
+            "GLPI web port",
+            "ART29",
+        ),
+        item_widget(
+            "GLPI MySQL",
+            18,
+            53,
+            itemid("artglptdb01p", "net.tcp.service[tcp,,3306]"),
+            "GLPI database port",
+            "ART30",
+        ),
+        graph_widget(
+            "GLPI response time",
+            36,
+            53,
+            [
+                {"host": "artglpt01p", "item": "GLPI HTTP response time", "color": "42A5F5"},
+                {"host": "artglptdb01p", "item": "GLPI MySQL TCP response time", "color": "66BB6A"},
+            ],
+            "ART31",
+        ),
+    ]
+
+    siem_widgets = [
+        item_widget(
+            "Graylog HTTP",
+            0,
+            0,
+            itemid("artgry01p", "net.tcp.service[http,,9000]"),
+            "Graylog web/API",
+            "ART32",
+        ),
+        item_widget(
+            "Graylog Syslog",
+            18,
+            0,
+            itemid("artgry01p", "net.tcp.service[tcp,,1514]"),
+            "Graylog syslog input TCP",
+            "ART33",
+        ),
+        item_widget(
+            "Splunk HTTP",
+            36,
+            0,
+            itemid("artspl01p", "net.tcp.service[http,,8000]"),
+            "Splunk web",
+            "ART34",
+        ),
+        item_widget(
+            "Rsyslog TCP",
+            54,
+            0,
+            itemid("artrsy01p", "net.tcp.service[tcp,,514]"),
+            "Rsyslog collector",
+            "ART35",
+        ),
+        item_widget(
+            "OpenSearch HTTP",
+            0,
+            3,
+            itemid("artgryidx01p", "net.tcp.service[http,,9200]"),
+            "Graylog index backend",
+            "ART36",
+        ),
+        item_widget(
+            "MongoDB Graylog",
+            18,
+            3,
+            itemid("artgrydb01p", "net.tcp.service[tcp,,27017]"),
+            "Graylog metadata database",
+            "ART37",
+        ),
+        item_widget(
+            "Splunk HEC",
+            36,
+            3,
+            itemid("artspl01p", "net.tcp.service[tcp,,8088]"),
+            "Splunk HTTP Event Collector",
+            "ART38",
+        ),
+        item_widget(
+            "Splunk Syslog",
+            54,
+            3,
+            itemid("artspl01p", "net.tcp.service[tcp,,1515]"),
+            "Splunk TCP input",
+            "ART39",
+        ),
+        graph_widget(
+            "SIEM response time",
+            0,
+            6,
+            [
+                {"host": "artgry01p", "item": "Graylog HTTP response time", "color": "42A5F5"},
+                {"host": "artgryidx01p", "item": "OpenSearch HTTP response time", "color": "66BB6A"},
+                {"host": "artspl01p", "item": "Splunk HTTP response time", "color": "FFA726"},
+            ],
+            "ART40",
+        ),
     ]
 
     payload = {
@@ -429,7 +540,10 @@ def main():
         "private": 0,
         "display_period": 30,
         "auto_start": 1,
-        "pages": [{"name": "Overview", "display_period": 0, "widgets": widgets}],
+        "pages": [
+            {"name": "Overview", "display_period": 0, "widgets": widgets},
+            {"name": "SIEM / Logs", "display_period": 0, "widgets": siem_widgets},
+        ],
     }
 
     existing = call(

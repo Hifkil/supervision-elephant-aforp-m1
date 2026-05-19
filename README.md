@@ -1,8 +1,8 @@
 # Lab de supervision Artemis
 
-Ce dépôt contient un lab Docker pour superviser une infrastructure Artemis avec **Zabbix**, **Nagios** et **Grafana + Prometheus**.
+Ce dépôt contient un lab Docker pour superviser une infrastructure Artemis avec **Zabbix**, **Nagios**, **Grafana + Prometheus**, une instance **GLPI** et une brique logs/SIEM **Graylog + Rsyslog + Splunk**.
 
-Le lab simule une entrée web HAProxy, deux backends Nginx, un cluster PostgreSQL primaire/réplique, des services de fichiers SFTP/NFS et une chaîne de supervision complète. Il sert de support pratique pour tester les checks, dashboards, alertes et seuils d'exploitation.
+Le lab simule une entrée web HAProxy, deux backends Nginx, un cluster PostgreSQL primaire/réplique, GLPI avec une base MySQL dédiée, des services de fichiers SFTP/NFS, une chaîne de supervision complète et une centralisation de logs. Il sert de support pratique pour tester les checks, dashboards, alertes, seuils d'exploitation et recherches de logs.
 
 ## Contenu du dépôt
 
@@ -20,6 +20,9 @@ Le lab simule une entrée web HAProxy, deux backends Nginx, un cluster PostgreSQ
 | `sftp/` | Initialisation et volume web SFTP |
 | `backup/` | Payload source copié vers SFTP et NFS pour tester la supervision de sauvegarde |
 | `docker-metrics/` | Exporter léger des métriques CPU/RAM/réseau/disque par conteneur |
+| `graylog/` | Bootstrap des inputs Syslog Graylog |
+| `rsyslog/` | Image et configuration du concentrateur Syslog |
+| `splunk/` | App Splunk locale : index Artemis, TCP syslog et HEC |
 | `Sujet/` | Documents sources du brief et du cours |
 | `PROCEDURE.md` | Procédure détaillée de démarrage, accès et dépannage |
 | `SUPERVISION_THRESHOLDS.md` | Seuils de supervision et logique d'alerte |
@@ -28,7 +31,8 @@ Le lab simule une entrée web HAProxy, deux backends Nginx, un cluster PostgreSQ
 
 - Docker Engine installé et démarré
 - Docker Compose disponible via `docker compose`
-- Ports locaux libres : `80`, `2222`, `3000`, `8080`, `8081`, `8404`, `9090`, `10051`
+- Ports locaux libres : `80`, `1514`, `1515`, `2222`, `3000`, `8000`, `8080`, `8081`, `8082`, `8088`, `8404`, `9000`, `9090`, `10051`, `10514`, `12201`
+- Pour Graylog/OpenSearch : `vm.max_map_count` doit être au moins à `262144` sur l'hôte Docker.
 
 ## Démarrage rapide
 
@@ -66,9 +70,16 @@ docker compose down -v
 | HAProxy stats | http://localhost:8404/stats | Aucun |
 | Zabbix | http://localhost:8080 | `Admin` / `zabbix` |
 | Nagios | http://localhost:8081/nagios | `nagiosadmin` / `nagios` |
+| GLPI | http://localhost:8082 | `glpi` / `glpi` |
+| Graylog | http://localhost:9000 | `admin` / `graylogadmin` |
+| Splunk | http://localhost:8000 | `admin` / `splunkadmin` |
 | Grafana | http://localhost:3000 | `admin` / `grafana` |
 | Prometheus | http://localhost:9090 | Aucun |
 | SFTP | `sftp -P 2222 artemis@localhost` | `artemis` / `artemis` |
+| Rsyslog | `localhost:10514` TCP/UDP | Collecte syslog locale |
+| Splunk HEC | http://localhost:8088/services/collector | token `00000000-0000-0000-0000-000000000000` |
+
+GLPI utilise `artglptdb01p`, une base MySQL dédiée. Les bases existantes du lab sont des bases PostgreSQL réservées à Artemis et Zabbix.
 
 ## Architecture simulée
 
@@ -89,6 +100,17 @@ Base de données
     |-- artbdd01p  PostgreSQL primaire
     `-- artbdd02p  PostgreSQL réplique
 
+ITSM
+    |-- artglpt01p    GLPI
+    `-- artglptdb01p  Base MySQL GLPI
+
+Logs / SIEM
+    |-- artrsy01p      Rsyslog collecteur et relais
+    |-- artgry01p      Graylog
+    |-- artgrydb01p    MongoDB Graylog
+    |-- artgryidx01p   OpenSearch Graylog
+    `-- artspl01p      Splunk
+
 Supervision
     |-- artzab01p     Zabbix Server
     |-- artzabweb01p  Interface web Zabbix
@@ -106,17 +128,20 @@ Supervision
 - Statut HAProxy et état des backends
 - Disponibilité SFTP et NFS
 - Disponibilité PostgreSQL primaire/réplique
+- Disponibilité GLPI HTTP et de sa base MySQL dédiée
+- Centralisation logs : `artrsy01p` lit les logs Docker JSON, accepte du syslog TCP/UDP sur `10514`, puis transfère vers Graylog `1514` et Splunk `1515`
+- Disponibilité Graylog, OpenSearch, MongoDB, Rsyslog, Splunk Web, Splunk HEC et ports d'ingestion logs
 - Probes HTTP, TCP et ICMP via Blackbox Exporter
 - Métriques Linux via agents Zabbix
-- Checks Zabbix applicatifs : ports PostgreSQL, SFTP/NFS, backup, Prometheus, Grafana, Nagios, Blackbox et exporter Docker
-- Métriques système Docker via `artmet01p` : CPU, RAM, réseau et I/O disque par conteneur
+- Checks Zabbix applicatifs : ports PostgreSQL, GLPI/MySQL, SFTP/NFS, backup, Prometheus, Grafana, Nagios, Blackbox et exporter Docker
+- Métriques système Docker via `artmet01p` : état, CPU, RAM, réseau et I/O disque pour tous les conteneurs Compose
 - Métriques Nginx, HAProxy, PostgreSQL et targets Prometheus
 - Checks Nagios enrichis : contenus HTTP, exporters, rôles PostgreSQL primaire/réplique, métriques backup et santé de la pile de supervision
 - Occupation disque des volumes Docker
 - Sauvegarde simple de `backup/source` vers SFTP et NFS, avec métriques de fraîcheur et de statut
 - Dashboard Grafana **Artemis Supervision**
 - Dashboard Zabbix **Artemis Supervision**
-- Alertes Grafana séparées par domaine fonctionnel
+- Alertes Grafana séparées par domaine fonctionnel, dont GLPI et SIEM/logs
 
 Les seuils fonctionnels sont documentés dans `SUPERVISION_THRESHOLDS.md`.
 
@@ -134,6 +159,9 @@ Après démarrage, vérifiez les interfaces principales :
 - HAProxy : http://localhost
 - Zabbix : http://localhost:8080
 - Nagios : http://localhost:8081/nagios
+- GLPI : http://localhost:8082
+- Graylog : http://localhost:9000
+- Splunk : http://localhost:8000
 - Prometheus : http://localhost:9090
 - Grafana : http://localhost:3000
 

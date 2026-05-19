@@ -297,12 +297,31 @@
       ]
     },
 
+    {
+      "type": "stat", "id": 45, "title": "État des conteneurs",
+      "gridPos": { "x": 0, "y": 62, "w": 24, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "horizontal", "textMode": "value_and_name", "colorMode": "background" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "UP", "color": "green" } } },
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "targets": [
+        { "expr": "artemis_container_running", "legendFormat": "{{service}}" }
+      ]
+    },
+
     { "type": "row", "id": 50, "title": "Sauvegarde — Web vers SFTP/NFS", "collapsed": false,
-      "gridPos": { "x": 0, "y": 62, "w": 24, "h": 1 } },
+      "gridPos": { "x": 0, "y": 66, "w": 24, "h": 1 } },
 
     {
       "type": "stat", "id": 51, "title": "État dernière sauvegarde",
-      "gridPos": { "x": 0, "y": 63, "w": 6, "h": 4 },
+      "gridPos": { "x": 0, "y": 67, "w": 6, "h": 4 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
       "fieldConfig": {
@@ -319,7 +338,7 @@
 
     {
       "type": "stat", "id": 52, "title": "Âge sauvegarde (min)",
-      "gridPos": { "x": 6, "y": 63, "w": 6, "h": 4 },
+      "gridPos": { "x": 6, "y": 67, "w": 6, "h": 4 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "value" },
       "fieldConfig": { "defaults": { "unit": "m", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 30 }, { "color": "red", "value": 60 }] } } },
@@ -328,7 +347,7 @@
 
     {
       "type": "timeseries", "id": 53, "title": "Durée et fichiers copiés",
-      "gridPos": { "x": 12, "y": 63, "w": 12, "h": 4 },
+      "gridPos": { "x": 12, "y": 67, "w": 12, "h": 4 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "palette-classic" } } },
       "options": { "tooltip": { "mode": "multi" } },
@@ -339,11 +358,11 @@
     },
 
     { "type": "row", "id": 60, "title": "Base de données — PostgreSQL Artemis", "collapsed": false,
-      "gridPos": { "x": 0, "y": 68, "w": 24, "h": 1 } },
+      "gridPos": { "x": 0, "y": 72, "w": 24, "h": 1 } },
 
     {
       "type": "timeseries", "id": 61, "title": "Disponibilité PostgreSQL",
-      "gridPos": { "x": 0, "y": 69, "w": 12, "h": 7 },
+      "gridPos": { "x": 0, "y": 73, "w": 12, "h": 7 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "short", "min": 0, "max": 1, "color": { "mode": "palette-classic" } } },
       "options": { "tooltip": { "mode": "multi" } },
@@ -357,7 +376,7 @@
 
     {
       "type": "timeseries", "id": 62, "title": "Activité PostgreSQL Artemis",
-      "gridPos": { "x": 12, "y": 69, "w": 12, "h": 7 },
+      "gridPos": { "x": 12, "y": 73, "w": 12, "h": 7 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "ops", "color": { "mode": "palette-classic" } } },
       "options": { "tooltip": { "mode": "multi" } },
@@ -369,11 +388,11 @@
     },
 
     { "type": "row", "id": 70, "title": "Disque — Volumes Docker", "collapsed": false,
-      "gridPos": { "x": 0, "y": 76, "w": 24, "h": 1 } },
+      "gridPos": { "x": 0, "y": 80, "w": 24, "h": 1 } },
 
     {
       "type": "timeseries", "id": 71, "title": "Occupation filesystem volumes (%)",
-      "gridPos": { "x": 0, "y": 77, "w": 12, "h": 7 },
+      "gridPos": { "x": 0, "y": 81, "w": 12, "h": 7 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 80 }, { "color": "red", "value": 90 }] } } },
       "options": { "tooltip": { "mode": "multi" } },
@@ -384,12 +403,119 @@
 
     {
       "type": "timeseries", "id": 72, "title": "Espace utilisé par volume",
-      "gridPos": { "x": 12, "y": 77, "w": 12, "h": 7 },
+      "gridPos": { "x": 12, "y": 81, "w": 12, "h": 7 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "bytes", "min": 0, "color": { "mode": "palette-classic" } } },
       "options": { "tooltip": { "mode": "multi" } },
       "targets": [
         { "expr": "artemis_volume_used_bytes", "legendFormat": "{{volume}}" }
+      ]
+    },
+
+    { "type": "row", "id": 80, "title": "Application — GLPI", "collapsed": false,
+      "gridPos": { "x": 0, "y": 88, "w": 24, "h": 1 } },
+
+    {
+      "type": "stat", "id": 81, "title": "GLPI HTTP",
+      "gridPos": { "x": 0, "y": 89, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "UP", "color": "green" } } },
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "targets": [{ "expr": "probe_success{job=\"blackbox_http\",instance=\"http://artglpt01p\"}", "legendFormat": "" }]
+    },
+
+    {
+      "type": "stat", "id": 82, "title": "Base GLPI MySQL",
+      "gridPos": { "x": 6, "y": 89, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "UP", "color": "green" } } },
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "targets": [{ "expr": "probe_success{job=\"blackbox_tcp\",instance=\"artglptdb01p:3306\"}", "legendFormat": "" }]
+    },
+
+    {
+      "type": "timeseries", "id": 83, "title": "Latence GLPI (ms)",
+      "gridPos": { "x": 12, "y": 89, "w": 12, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms", "color": { "mode": "palette-classic" } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "probe_duration_seconds{job=\"blackbox_http\",instance=\"http://artglpt01p\"} * 1000", "legendFormat": "HTTP GLPI" },
+        { "expr": "probe_duration_seconds{job=\"blackbox_tcp\",instance=\"artglptdb01p:3306\"} * 1000", "legendFormat": "MySQL GLPI" }
+      ]
+    },
+
+    { "type": "row", "id": 90, "title": "Logs / SIEM — Graylog, Rsyslog, Splunk", "collapsed": false,
+      "gridPos": { "x": 0, "y": 93, "w": 24, "h": 1 } },
+
+    {
+      "type": "stat", "id": 91, "title": "SIEM endpoints",
+      "gridPos": { "x": 0, "y": 94, "w": 12, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "horizontal", "textMode": "value_and_name", "colorMode": "background" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "UP", "color": "green" } } },
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "targets": [
+        { "expr": "probe_success{job=\"blackbox_http\",instance=\"http://artgry01p:9000/api/system/lbstatus\"}", "legendFormat": "Graylog API" },
+        { "expr": "probe_success{job=\"blackbox_http\",instance=\"http://artspl01p:8000/en-US/account/login\"}", "legendFormat": "Splunk Web" },
+        { "expr": "probe_success{job=\"blackbox_tcp\",instance=\"artrsy01p:514\"}", "legendFormat": "Rsyslog TCP" }
+      ]
+    },
+
+    {
+      "type": "stat", "id": 92, "title": "Ingestion logs",
+      "gridPos": { "x": 12, "y": 94, "w": 12, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "horizontal", "textMode": "value_and_name", "colorMode": "background" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "UP", "color": "green" } } },
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "targets": [
+        { "expr": "probe_success{job=\"blackbox_tcp\",instance=\"artgry01p:1514\"}", "legendFormat": "Graylog Syslog" },
+        { "expr": "probe_success{job=\"blackbox_tcp\",instance=\"artspl01p:1515\"}", "legendFormat": "Splunk Syslog" },
+        { "expr": "probe_success{job=\"blackbox_tcp\",instance=\"artspl01p:8088\"}", "legendFormat": "Splunk HEC" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 93, "title": "Latence SIEM (ms)",
+      "gridPos": { "x": 0, "y": 99, "w": 24, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms", "color": { "mode": "palette-classic" } } },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "probe_duration_seconds{job=\"blackbox_http\",instance=\"http://artgry01p:9000/api/system/lbstatus\"} * 1000", "legendFormat": "Graylog API" },
+        { "expr": "probe_duration_seconds{job=\"blackbox_http\",instance=\"http://artspl01p:8000/en-US/account/login\"} * 1000", "legendFormat": "Splunk Web" },
+        { "expr": "probe_duration_seconds{job=\"blackbox_tcp\",instance=\"artrsy01p:514\"} * 1000", "legendFormat": "Rsyslog TCP" }
       ]
     }
 

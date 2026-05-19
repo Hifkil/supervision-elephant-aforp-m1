@@ -10,7 +10,7 @@ BOLD='\033[1m'
 DIM='\033[2m'
 RESET='\033[0m'
 
-TIMEOUT=240   # secondes max d'attente par service (zabbix-web ~2-3 min)
+TIMEOUT=360   # secondes max d'attente par service (Splunk/Graylog peuvent prendre 3-5 min)
 POLL=3        # intervalle de sondage (s)
 
 # ── Bannière ──────────────────────────────────────────────────────────────────
@@ -97,6 +97,19 @@ configure_zabbix() {
   fi
 }
 
+configure_graylog() {
+  echo ""
+  echo -e "${BOLD}  Configuration SIEM / logs${RESET}"
+  echo -e "${DIM}  ──────────────────────────────────────────${RESET}"
+
+  if ./graylog/setup-inputs.sh; then
+    echo -e "  ${GREEN}✓  Inputs Syslog Graylog prêts${RESET}"
+  else
+    echo -e "  ${RED}✗  Configuration Graylog incomplète${RESET}"
+    echo -e "      ${DIM}→ relancer ./graylog/setup-inputs.sh après démarrage de artgry01p${RESET}"
+  fi
+}
+
 # ── Vérification dans l'ordre de démarrage ────────────────────────────────────
 echo -e "${BOLD}  État des services${RESET}"
 echo -e "${DIM}  ──────────────────────────────────────────${RESET}"
@@ -114,6 +127,20 @@ check_service "artbdd01p"             artbdd01p
 check_service "artbdd02p"             artbdd02p
 check_service "agent → artbdd01p"     zabbix-agent-artbdd01p
 check_service "agent → artbdd02p"     zabbix-agent-artbdd02p
+check_service "artglptdb01p"           artglptdb01p
+check_service "artglpt01p"             artglpt01p
+check_service "agent → artglptdb01p"   zabbix-agent-artglptdb01p
+check_service "agent → artglpt01p"     zabbix-agent-artglpt01p
+check_service "artgrydb01p"            artgrydb01p
+check_service "artgryidx01p"           artgryidx01p
+check_service "artgry01p"              artgry01p
+check_service "artspl01p"              artspl01p
+check_service "artrsy01p"              artrsy01p
+check_service "agent → artgrydb01p"    zabbix-agent-artgrydb01p
+check_service "agent → artgryidx01p"   zabbix-agent-artgryidx01p
+check_service "agent → artgry01p"      zabbix-agent-artgry01p
+check_service "agent → artspl01p"      zabbix-agent-artspl01p
+check_service "agent → artrsy01p"      zabbix-agent-artrsy01p
 check_service "artsft02p"             artsft02p
 check_service "agent → artsft02p"     zabbix-agent-artsft02p
 check_service "artnfs01p"             artnfs01p
@@ -134,6 +161,7 @@ check_service "agent → artgrf01p"     zabbix-agent-artgrf01p
 check_service "artnag01p"             artnag01p
 check_service "agent → artnag01p"     zabbix-agent-artnag01p
 
+configure_graylog
 configure_zabbix
 
 # ── Récapitulatif des accès ───────────────────────────────────────────────────
@@ -145,8 +173,18 @@ print_access_row "HAProxy web" "http://localhost" "Aucun" "point d'entrée appli
 print_access_row "HAProxy stats" "http://localhost:8404/stats" "Aucun" "état frontend/backends"
 print_access_row "Zabbix" "http://localhost:8080" "Admin / zabbix" "supervision agents"
 print_access_row "Nagios" "http://localhost:8081/nagios" "nagiosadmin / nagios" "checks actifs"
+print_access_row "GLPI" "http://localhost:8082" "glpi / glpi" "ITSM local"
+print_access_row "Graylog" "http://localhost:9000" "admin / graylogadmin" "logs centralisés"
+print_access_row "Splunk" "http://localhost:8000" "admin / splunkadmin" "recherche logs"
 print_access_row "Prometheus" "http://localhost:9090" "Aucun" "métriques et targets"
 print_access_row "Grafana" "http://localhost:3000" "admin / grafana" "dashboard Artemis"
+echo ""
+echo -e "${BOLD}  Accès logs / SIEM${RESET}"
+echo -e "${DIM}  ──────────────────────────────────────────${RESET}"
+echo -e "  Rsyslog TCP/UDP   ${CYAN}localhost:10514${RESET} → Graylog ${BOLD}1514${RESET} et Splunk ${BOLD}1515${RESET}"
+echo -e "  Graylog GELF      ${CYAN}localhost:12201${RESET} TCP/UDP"
+echo -e "  Splunk HEC        ${CYAN}http://localhost:8088/services/collector${RESET}"
+echo -e "  HEC token         ${BOLD}00000000-0000-0000-0000-000000000000${RESET}"
 echo ""
 echo -e "${BOLD}  Accès fichiers${RESET}"
 echo -e "${DIM}  ──────────────────────────────────────────${RESET}"

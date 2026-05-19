@@ -10,6 +10,14 @@ volumes:
   prometheus-data:
   sftp-ssh-keys:
   nfs-web:
+  glpi-data:
+  glpi-db:
+  graylog-mongo-data:
+  graylog-mongo-config:
+  graylog-opensearch-data:
+  graylog-data:
+  splunk-data:
+  rsyslog-spool:
 
 services:
 
@@ -290,6 +298,262 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # ── artglpt01p — GLPI ITSM avec base MySQL dédiée ────────────────────────
+  artglptdb01p:
+    image: mysql:8.4
+    hostname: artglptdb01p
+    networks:
+      - artemis
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_DATABASE: glpi
+      MYSQL_USER: glpi
+      MYSQL_PASSWORD: glpi
+    command:
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_unicode_ci"
+    volumes:
+      - glpi-db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -h 127.0.0.1 -u glpi -pglpi -D glpi -e 'SELECT 1' >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    restart: unless-stopped
+
+  zabbix-agent-artglptdb01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artglptdb01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artglptdb01p
+    depends_on:
+      - artzab01p
+      - artglptdb01p
+    restart: unless-stopped
+
+  artglpt01p:
+    image: glpi/glpi:latest
+    hostname: artglpt01p
+    networks:
+      - artemis
+    environment:
+      GLPI_DB_HOST: artglptdb01p
+      GLPI_DB_PORT: 3306
+      GLPI_DB_NAME: glpi
+      GLPI_DB_USER: glpi
+      GLPI_DB_PASSWORD: glpi
+      TZ: Europe/Paris
+    ports:
+      - "8082:80"
+    volumes:
+      - glpi-data:/var/glpi
+    depends_on:
+      artglptdb01p:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@fsockopen(\"127.0.0.1\", 80) ? 0 : 1);'"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    restart: unless-stopped
+
+  zabbix-agent-artglpt01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artglpt01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artglpt01p
+    depends_on:
+      - artzab01p
+      - artglpt01p
+    restart: unless-stopped
+
+  # ── Logs / SIEM : Graylog, Splunk et concentrateur Rsyslog ───────────────
+  artgrydb01p:
+    image: mongo:7.0
+    hostname: artgrydb01p
+    networks:
+      - artemis
+    volumes:
+      - graylog-mongo-data:/data/db
+      - graylog-mongo-config:/data/configdb
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok' | grep -q 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  zabbix-agent-artgrydb01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artgrydb01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artgrydb01p
+    depends_on:
+      - artzab01p
+      - artgrydb01p
+    restart: unless-stopped
+
+  artgryidx01p:
+    image: opensearchproject/opensearch:2.15.0
+    hostname: artgryidx01p
+    networks:
+      - artemis
+    environment:
+      "discovery.type": single-node
+      "plugins.security.disabled": "true"
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: "ArtemisOpenSearch1!"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - graylog-opensearch-data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health | grep -Eq '\"status\":\"(green|yellow)\"'"]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+    restart: unless-stopped
+
+  zabbix-agent-artgryidx01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artgryidx01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artgryidx01p
+    depends_on:
+      - artzab01p
+      - artgryidx01p
+    restart: unless-stopped
+
+  artgry01p:
+    image: graylog/graylog:6.3
+    hostname: artgry01p
+    networks:
+      - artemis
+    entrypoint: "/usr/bin/tini -- wait-for-it artgryidx01p:9200 -- /docker-entrypoint.sh"
+    environment:
+      GRAYLOG_NODE_ID_FILE: /usr/share/graylog/data/config/node-id
+      GRAYLOG_PASSWORD_SECRET: artemis_graylog_password_secret_2026_change_me
+      GRAYLOG_ROOT_PASSWORD_SHA2: 075f6c23fb5ac95d297aeec6f882fd7d646f2523b5fbfef8e302c8793839bd98
+      GRAYLOG_HTTP_BIND_ADDRESS: 0.0.0.0:9000
+      GRAYLOG_HTTP_EXTERNAL_URI: http://localhost:9000/
+      GRAYLOG_ELASTICSEARCH_HOSTS: http://artgryidx01p:9200
+      GRAYLOG_MONGODB_URI: mongodb://artgrydb01p:27017/graylog
+      GRAYLOG_REPORT_DISABLE_SANDBOX: "true"
+      GRAYLOG_SERVER_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "9000:9000"
+      - "1514:1514/tcp"
+      - "1514:1514/udp"
+      - "12201:12201/tcp"
+      - "12201:12201/udp"
+    volumes:
+      - graylog-data:/usr/share/graylog/data
+    depends_on:
+      artgrydb01p:
+        condition: service_healthy
+      artgryidx01p:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/api/system/lbstatus | grep -q ALIVE"]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+      start_period: 90s
+    restart: unless-stopped
+
+  zabbix-agent-artgry01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artgry01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artgry01p
+    depends_on:
+      - artzab01p
+      - artgry01p
+    restart: unless-stopped
+
+  artspl01p:
+    build: ./splunk
+    hostname: artspl01p
+    networks:
+      - artemis
+    environment:
+      SPLUNK_START_ARGS: "--accept-license"
+      SPLUNK_GENERAL_TERMS: "--accept-sgt-current-at-splunk-com"
+      SPLUNK_PASSWORD: splunkadmin
+    ports:
+      - "8000:8000"
+      - "8088:8088"
+      - "1515:1515"
+    volumes:
+      - splunk-data:/opt/splunk/var
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/en-US/account/login >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+    restart: unless-stopped
+
+  zabbix-agent-artspl01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artspl01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artspl01p
+    depends_on:
+      - artzab01p
+      - artspl01p
+    restart: unless-stopped
+
+  artrsy01p:
+    build: ./rsyslog
+    hostname: artrsy01p
+    networks:
+      - artemis
+    ports:
+      - "10514:514/tcp"
+      - "10514:514/udp"
+    volumes:
+      - rsyslog-spool:/var/spool/rsyslog
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      artgry01p:
+        condition: service_healthy
+      artspl01p:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pidof rsyslogd >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  zabbix-agent-artrsy01p:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    network_mode: "service:artrsy01p"
+    environment:
+      ZBX_SERVER_HOST: artzab01p
+      ZBX_HOSTNAME: artrsy01p
+    depends_on:
+      - artzab01p
+      - artrsy01p
+    restart: unless-stopped
+
   # ── artsft02p — serveur SFTP pour sauvegarde web ─────────────────────────
   artsft02p:
     image: atmoz/sftp:alpine
@@ -425,6 +689,14 @@ services:
       - prometheus-data:/mnt/volumes/prometheus-data:ro
       - sftp-ssh-keys:/mnt/volumes/sftp-ssh-keys:ro
       - nfs-web:/mnt/volumes/nfs-web:ro
+      - glpi-data:/mnt/volumes/glpi-data:ro
+      - glpi-db:/mnt/volumes/glpi-db:ro
+      - graylog-mongo-data:/mnt/volumes/graylog-mongo-data:ro
+      - graylog-mongo-config:/mnt/volumes/graylog-mongo-config:ro
+      - graylog-opensearch-data:/mnt/volumes/graylog-opensearch-data:ro
+      - graylog-data:/mnt/volumes/graylog-data:ro
+      - splunk-data:/mnt/volumes/splunk-data:ro
+      - rsyslog-spool:/mnt/volumes/rsyslog-spool:ro
     environment:
       COMPOSE_PROJECT_NAME: supervision-elephant-aforp-m1
     command: ["sh", "/usr/local/bin/exporter.sh"]

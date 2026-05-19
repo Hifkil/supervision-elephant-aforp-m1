@@ -48,7 +48,7 @@ scrape_configs:
           app: postgres
           role: replica
 
-  # ── Blackbox : probe HTTP sur les backends Nginx ──────────────────────────
+  # ── Blackbox : probes HTTP applicatives ───────────────────────────────────
   - job_name: blackbox_http
     metrics_path: /probe
     params:
@@ -58,6 +58,9 @@ scrape_configs:
           - http://arthpx01p
           - http://artweb01p
           - http://artweb02p
+          - http://artglpt01p
+          - http://artgry01p:9000/api/system/lbstatus
+          - http://artspl01p:8000/en-US/account/login
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
@@ -83,7 +86,7 @@ scrape_configs:
       - target_label: __address__
         replacement: artbbx01p:9115
 
-  # ── Blackbox : services fichiers SFTP / NFS ───────────────────────────────
+  # ── Blackbox : ports TCP applicatifs et supervision ───────────────────────
   - job_name: blackbox_tcp
     metrics_path: /probe
     params:
@@ -94,6 +97,16 @@ scrape_configs:
           - artnfs01p:2049
           - artbdd01p:5432
           - artbdd02p:5432
+          - artglpt01p:80
+          - artglptdb01p:3306
+          - artgrydb01p:27017
+          - artgryidx01p:9200
+          - artgry01p:9000
+          - artgry01p:1514
+          - artspl01p:8000
+          - artspl01p:8088
+          - artspl01p:1515
+          - artrsy01p:514
           - artzabweb01p:8080
           - artnag01p:80
           - artprom01p:9090

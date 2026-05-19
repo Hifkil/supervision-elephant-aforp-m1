@@ -209,6 +209,13 @@ create_host "arthpx01p" "$HAPRX_TPL" "$HAPRX_MAC"
 for host in \
   artbdd01p \
   artbdd02p \
+  artglpt01p \
+  artglptdb01p \
+  artgrydb01p \
+  artgryidx01p \
+  artgry01p \
+  artspl01p \
+  artrsy01p \
   artsft02p \
   artnfs01p \
   artbkp01p \
@@ -237,6 +244,21 @@ ensure_simple_check "artbdd01p" "PostgreSQL primary TCP status" "net.tcp.service
 ensure_simple_check "artbdd01p" "PostgreSQL primary TCP response time" "net.tcp.service.perf[tcp,,5432]" 0
 ensure_simple_check "artbdd02p" "PostgreSQL replica TCP status" "net.tcp.service[tcp,,5432]" 3
 ensure_simple_check "artbdd02p" "PostgreSQL replica TCP response time" "net.tcp.service.perf[tcp,,5432]" 0
+ensure_simple_check "artglpt01p" "GLPI HTTP status" "net.tcp.service[http,,80]" 3
+ensure_simple_check "artglpt01p" "GLPI HTTP response time" "net.tcp.service.perf[http,,80]" 0
+ensure_simple_check "artglptdb01p" "GLPI MySQL TCP status" "net.tcp.service[tcp,,3306]" 3
+ensure_simple_check "artglptdb01p" "GLPI MySQL TCP response time" "net.tcp.service.perf[tcp,,3306]" 0
+ensure_simple_check "artgrydb01p" "Graylog MongoDB TCP status" "net.tcp.service[tcp,,27017]" 3
+ensure_simple_check "artgryidx01p" "OpenSearch HTTP status" "net.tcp.service[http,,9200]" 3
+ensure_simple_check "artgryidx01p" "OpenSearch HTTP response time" "net.tcp.service.perf[http,,9200]" 0
+ensure_simple_check "artgry01p" "Graylog HTTP status" "net.tcp.service[http,,9000]" 3
+ensure_simple_check "artgry01p" "Graylog HTTP response time" "net.tcp.service.perf[http,,9000]" 0
+ensure_simple_check "artgry01p" "Graylog Syslog TCP status" "net.tcp.service[tcp,,1514]" 3
+ensure_simple_check "artspl01p" "Splunk HTTP status" "net.tcp.service[http,,8000]" 3
+ensure_simple_check "artspl01p" "Splunk HTTP response time" "net.tcp.service.perf[http,,8000]" 0
+ensure_simple_check "artspl01p" "Splunk HEC TCP status" "net.tcp.service[tcp,,8088]" 3
+ensure_simple_check "artspl01p" "Splunk Syslog TCP status" "net.tcp.service[tcp,,1515]" 3
+ensure_simple_check "artrsy01p" "Rsyslog TCP status" "net.tcp.service[tcp,,514]" 3
 ensure_simple_check "artbbx01p" "Blackbox exporter TCP status" "net.tcp.service[tcp,,9115]" 3
 ensure_simple_check "artmet01p" "Docker metrics HTTP status" "net.tcp.service[http,,8080]" 3
 ensure_simple_check "artmet01p" "Docker metrics HTTP response time" "net.tcp.service.perf[http,,8080]" 0
