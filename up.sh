@@ -24,12 +24,12 @@ echo ""
 docker compose up -d --remove-orphans "$@"
 echo ""
 
-# Les agents Zabbix sidecars partagent le namespace réseau du service cible.
-# Si un service cible a été recréé ou redémarré, on recrée les agents pour
-# éviter qu'ils restent attachés à un ancien namespace sans port 10050.
-mapfile -t ZABBIX_AGENT_SERVICES < <(docker compose config --services | grep '^zabbix-agent-' || true)
-if [ "${#ZABBIX_AGENT_SERVICES[@]}" -gt 0 ]; then
-  docker compose up -d --no-deps --force-recreate "${ZABBIX_AGENT_SERVICES[@]}"
+# Ces sidecars partagent le namespace réseau du service cible.
+# Si un service cible a été recréé ou redémarré, on les recrée pour éviter
+# qu'ils restent attachés à un ancien namespace sans port exposé.
+mapfile -t NETWORK_SIDECAR_SERVICES < <(docker compose config --services | grep -E '^(zabbix-agent-|nginx-exporter-|postgres-exporter-)' || true)
+if [ "${#NETWORK_SIDECAR_SERVICES[@]}" -gt 0 ]; then
+  docker compose up -d --no-deps --force-recreate "${NETWORK_SIDECAR_SERVICES[@]}"
   echo ""
 fi
 
@@ -131,11 +131,15 @@ check_service "artzabweb01p"          artzabweb01p
 check_service "agent → artzabweb01p"  zabbix-agent-artzabweb01p
 check_service "artweb01p"             artweb01p
 check_service "artweb02p"             artweb02p
+check_service "exporter → artweb01p"  nginx-exporter-artweb01p
+check_service "exporter → artweb02p"  nginx-exporter-artweb02p
 check_service "arthpx01p"             arthpx01p
 check_service "artbdd01p"             artbdd01p
 check_service "artbdd02p"             artbdd02p
 check_service "agent → artbdd01p"     zabbix-agent-artbdd01p
 check_service "agent → artbdd02p"     zabbix-agent-artbdd02p
+check_service "exporter → artbdd01p"  postgres-exporter-artbdd01p
+check_service "exporter → artbdd02p"  postgres-exporter-artbdd02p
 check_service "artglptdb01p"           artglptdb01p
 check_service "artglpt01p"             artglpt01p
 check_service "agent → artglptdb01p"   zabbix-agent-artglptdb01p

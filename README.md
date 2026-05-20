@@ -23,10 +23,12 @@ Le lab simule une entrée web HAProxy, deux backends Nginx, un cluster PostgreSQ
 | `graylog/` | Bootstrap des inputs Syslog Graylog |
 | `rsyslog/` | Image et configuration du concentrateur Syslog |
 | `splunk/` | App Splunk locale : index Artemis, TCP syslog et HEC |
+| `run-scenario.sh` | Script interactif des scénarios de panne |
 | `Sujet/` | Documents sources du brief et du cours |
 | `PROCEDURE.md` | Procédure détaillée de démarrage, accès et dépannage |
 | `SUPERVISION_THRESHOLDS.md` | Seuils de supervision et logique d'alerte |
 | `NOMMAGE_ET_CHOIX_OUTILS.md` | Noms canoniques Artemis, écarts assumés et rôle des outils |
+| `SCENARIOS_DE_PANNE.md` | Scénarios de panne prêts à rejouer en démonstration |
 
 ## Prérequis
 
@@ -173,6 +175,19 @@ Consultez `PROCEDURE.md` pour la procédure complète : démarrage, accès, conf
 Consultez `SUPERVISION_THRESHOLDS.md` pour la définition des métriques, seuils `WARNING` et seuils `CRITICAL`.
 
 Consultez `NOMMAGE_ET_CHOIX_OUTILS.md` pour le mapping avec les noms du sujet et la justification du rôle de Zabbix, Nagios, Prometheus/Grafana, Graylog/Splunk et GLPI.
+
+Consultez `SCENARIOS_DE_PANNE.md` pour les scénarios de démonstration : perte d'un backend web, perte de la réplique PostgreSQL et perte du collecteur Rsyslog.
+
+Le script interactif `./run-scenario.sh` permet de lancer les mêmes scénarios avec confirmation avant chaque arrêt de service :
+
+```bash
+./run-scenario.sh web-down
+./run-scenario.sh web-restore
+./run-scenario.sh db-down
+./run-scenario.sh db-restore
+./run-scenario.sh siem-down
+./run-scenario.sh siem-restore
+```
 
 ## Notes de publication GitHub
 

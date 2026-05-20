@@ -239,6 +239,8 @@ Nagios vérifie automatiquement toutes les **minutes** :
 
 Accédez aux résultats : http://localhost:8081/nagios → **Services**
 
+Pour la soutenance, les scénarios prêts à rejouer sont documentés dans `SCENARIOS_DE_PANNE.md` et automatisés par `./run-scenario.sh` : arrêt d'un backend web, arrêt de la réplique PostgreSQL et arrêt du collecteur Rsyslog.
+
 ---
 
 ## Grafana — Dashboard Artemis

@@ -11,12 +11,10 @@ Ce fichier suit les derniers points a traiter pour considerer le stack de superv
 - [ ] Verifier que Graylog recoit des logs via l'input `Artemis syslog TCP`.
 - [ ] Verifier que Splunk recoit des logs dans l'index `artemis`.
 - [ ] Prendre les captures necessaires pour le dossier ou la presentation : Zabbix dashboard, Nagios services, Grafana dashboard, Prometheus targets, GLPI, Graylog, Splunk.
-- [ ] Rejouer un scenario de panne simple pour chaque outil :
+- [ ] Rejouer les scenarios de panne documentes dans `SCENARIOS_DE_PANNE.md` :
   - arreter un backend Nginx et observer HAProxy, Nagios, Zabbix, Grafana ;
   - arreter la replique PostgreSQL et observer les checks DB ;
-  - arreter `artglpt01p` ou `artglptdb01p` et observer les checks GLPI ;
-  - arreter `artrsy01p`, `artgra01p` ou `artspl01p` et observer les checks SIEM/logs ;
-  - arreter `artbkp01p` et observer backup/exporter.
+  - arreter `artrsy01p` et observer les checks SIEM/logs.
 
 ## P1 - Ameliorations utiles si temps disponible
 
