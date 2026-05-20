@@ -15,7 +15,7 @@ Ce fichier suit les derniers points a traiter pour considerer le stack de superv
   - arreter un backend Nginx et observer HAProxy, Nagios, Zabbix, Grafana ;
   - arreter la replique PostgreSQL et observer les checks DB ;
   - arreter `artglpt01p` ou `artglptdb01p` et observer les checks GLPI ;
-  - arreter `artrsy01p`, `artgry01p` ou `artspl01p` et observer les checks SIEM/logs ;
+  - arreter `artrsy01p`, `artgra01p` ou `artspl01p` et observer les checks SIEM/logs ;
   - arreter `artbkp01p` et observer backup/exporter.
 
 ## P1 - Ameliorations utiles si temps disponible

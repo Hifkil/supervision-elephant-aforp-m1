@@ -118,7 +118,7 @@ serve_metrics() {
       printf 'Connection: close\r\n'
       printf '\r\n'
       cat "$METRICS_FILE"
-    } | nc -l -p 8080
+    } | nc -l -p 8080 || true
   done
 }
 

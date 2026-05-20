@@ -372,9 +372,9 @@ services:
     restart: unless-stopped
 
   # ── Logs / SIEM : Graylog, Splunk et concentrateur Rsyslog ───────────────
-  artgrydb01p:
+  artgradb01p:
     image: mongo:7.0
-    hostname: artgrydb01p
+    hostname: artgradb01p
     networks:
       - artemis
     volumes:
@@ -388,20 +388,20 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  zabbix-agent-artgrydb01p:
+  zabbix-agent-artgradb01p:
     image: zabbix/zabbix-agent2:alpine-7.0-latest
-    network_mode: "service:artgrydb01p"
+    network_mode: "service:artgradb01p"
     environment:
       ZBX_SERVER_HOST: artzab01p
-      ZBX_HOSTNAME: artgrydb01p
+      ZBX_HOSTNAME: artgradb01p
     depends_on:
       - artzab01p
-      - artgrydb01p
+      - artgradb01p
     restart: unless-stopped
 
-  artgryidx01p:
+  artgraidx01p:
     image: opensearchproject/opensearch:2.15.0
-    hostname: artgryidx01p
+    hostname: artgraidx01p
     networks:
       - artemis
     environment:
@@ -426,31 +426,31 @@ services:
       start_period: 60s
     restart: unless-stopped
 
-  zabbix-agent-artgryidx01p:
+  zabbix-agent-artgraidx01p:
     image: zabbix/zabbix-agent2:alpine-7.0-latest
-    network_mode: "service:artgryidx01p"
+    network_mode: "service:artgraidx01p"
     environment:
       ZBX_SERVER_HOST: artzab01p
-      ZBX_HOSTNAME: artgryidx01p
+      ZBX_HOSTNAME: artgraidx01p
     depends_on:
       - artzab01p
-      - artgryidx01p
+      - artgraidx01p
     restart: unless-stopped
 
-  artgry01p:
+  artgra01p:
     image: graylog/graylog:6.3
-    hostname: artgry01p
+    hostname: artgra01p
     networks:
       - artemis
-    entrypoint: "/usr/bin/tini -- wait-for-it artgryidx01p:9200 -- /docker-entrypoint.sh"
+    entrypoint: "/usr/bin/tini -- wait-for-it artgraidx01p:9200 -- /docker-entrypoint.sh"
     environment:
       GRAYLOG_NODE_ID_FILE: /usr/share/graylog/data/config/node-id
       GRAYLOG_PASSWORD_SECRET: artemis_graylog_password_secret_2026_change_me
       GRAYLOG_ROOT_PASSWORD_SHA2: 075f6c23fb5ac95d297aeec6f882fd7d646f2523b5fbfef8e302c8793839bd98
       GRAYLOG_HTTP_BIND_ADDRESS: 0.0.0.0:9000
       GRAYLOG_HTTP_EXTERNAL_URI: http://localhost:9000/
-      GRAYLOG_ELASTICSEARCH_HOSTS: http://artgryidx01p:9200
-      GRAYLOG_MONGODB_URI: mongodb://artgrydb01p:27017/graylog
+      GRAYLOG_ELASTICSEARCH_HOSTS: http://artgraidx01p:9200
+      GRAYLOG_MONGODB_URI: mongodb://artgradb01p:27017/graylog
       GRAYLOG_REPORT_DISABLE_SANDBOX: "true"
       GRAYLOG_SERVER_JAVA_OPTS: "-Xms512m -Xmx512m"
     ports:
@@ -462,9 +462,9 @@ services:
     volumes:
       - graylog-data:/usr/share/graylog/data
     depends_on:
-      artgrydb01p:
+      artgradb01p:
         condition: service_healthy
-      artgryidx01p:
+      artgraidx01p:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:9000/api/system/lbstatus | grep -q ALIVE"]
@@ -474,15 +474,15 @@ services:
       start_period: 90s
     restart: unless-stopped
 
-  zabbix-agent-artgry01p:
+  zabbix-agent-artgra01p:
     image: zabbix/zabbix-agent2:alpine-7.0-latest
-    network_mode: "service:artgry01p"
+    network_mode: "service:artgra01p"
     environment:
       ZBX_SERVER_HOST: artzab01p
-      ZBX_HOSTNAME: artgry01p
+      ZBX_HOSTNAME: artgra01p
     depends_on:
       - artzab01p
-      - artgry01p
+      - artgra01p
     restart: unless-stopped
 
   artspl01p:
@@ -531,7 +531,7 @@ services:
       - rsyslog-spool:/var/spool/rsyslog
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
     depends_on:
-      artgry01p:
+      artgra01p:
         condition: service_healthy
       artspl01p:
         condition: service_healthy
@@ -736,10 +736,10 @@ services:
       - artweb02p
     restart: unless-stopped
 
-  # ── artprom01p — Prometheus ───────────────────────────────────────────────
-  artprom01p:
+  # ── artpgr01p — Prometheus ───────────────────────────────────────────────
+  artpgr01p:
     image: prom/prometheus:latest
-    hostname: artprom01p
+    hostname: artpgr01p
     networks:
       - artemis
     ports:
@@ -758,15 +758,15 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  zabbix-agent-artprom01p:
+  zabbix-agent-artpgr01p:
     image: zabbix/zabbix-agent2:alpine-7.0-latest
-    network_mode: "service:artprom01p"
+    network_mode: "service:artpgr01p"
     environment:
       ZBX_SERVER_HOST: artzab01p
-      ZBX_HOSTNAME: artprom01p
+      ZBX_HOSTNAME: artpgr01p
     depends_on:
       - artzab01p
-      - artprom01p
+      - artpgr01p
     restart: unless-stopped
 
   # ── artgrf01p — Grafana dashboards ───────────────────────────────────────
@@ -783,7 +783,7 @@ services:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
     depends_on:
-      artprom01p:
+      artpgr01p:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q ok"]

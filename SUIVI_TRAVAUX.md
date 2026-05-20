@@ -19,8 +19,9 @@ Ce fichier suit les choix et l'avancement technique du lab. Il sert de note de t
 - [x] Étendre la couverture Zabbix aux services du lab.
 - [x] Séparer les alertes Grafana par domaine fonctionnel.
 - [x] Ajouter GLPI avec une base MySQL dédiée et le nom Artemis `artglpt01p`.
-- [x] Ajouter une chaîne logs/SIEM : `artrsy01p`, `artgry01p` et `artspl01p`.
+- [x] Ajouter une chaîne logs/SIEM : `artrsy01p`, `artgra01p` et `artspl01p`.
 - [x] Valider la configuration Compose et documenter les points restants.
+- [x] Aligner les noms Zabbix/Nagios/Prometheus sur les noms cités dans le sujet.
 
 ## Fait
 
@@ -38,13 +39,15 @@ Ce fichier suit les choix et l'avancement technique du lab. Il sert de note de t
 - [x] Ajout d'un panneau Grafana pour reporter explicitement l'état `running` de tous les conteneurs Compose.
 - [x] Ajout d'une section Grafana SIEM/logs pour Graylog, Rsyslog, Splunk et les ports d'ingestion.
 - [x] Ajout du collecteur `artrsy01p` : lecture des logs Docker JSON, écoute syslog `10514` côté hôte et relais vers Graylog/Splunk.
-- [x] Ajout de Graylog `artgry01p` avec MongoDB `artgrydb01p`, OpenSearch `artgryidx01p` et bootstrap des inputs Syslog.
+- [x] Ajout de Graylog `artgra01p` avec MongoDB `artgradb01p`, OpenSearch `artgraidx01p` et bootstrap des inputs Syslog.
 - [x] Ajout de Splunk `artspl01p` avec index `artemis`, input TCP `1515` et HEC `8088`.
 - [x] Remplacement de l'image PostgreSQL Bitnami prévue initialement par `postgres:16-alpine` avec scripts de réplication locaux.
 - [x] Déplacement du script de preuve de sauvegarde `artbkp01p` dans `backup/run-backup.sh` pour garder `docker-compose.yml` lisible.
 - [x] Validation du démarrage complet avec `./up.sh --build`.
 - [x] Validation Prometheus : exporters PostgreSQL et métriques disque visibles.
 - [x] Validation PostgreSQL : `artbdd01p` primaire, `artbdd02p` en recovery, réplication de données testée.
+- [x] Renommage de Graylog en `artgra01p` et de Prometheus en `artpgr01p`.
+- [x] Ajout du document `NOMMAGE_ET_CHOIX_OUTILS.md` pour cadrer les écarts assumés et le rôle de chaque outil.
 
 ## Restera volontairement ouvert
 

@@ -26,6 +26,7 @@ Le lab simule une entrée web HAProxy, deux backends Nginx, un cluster PostgreSQ
 | `Sujet/` | Documents sources du brief et du cours |
 | `PROCEDURE.md` | Procédure détaillée de démarrage, accès et dépannage |
 | `SUPERVISION_THRESHOLDS.md` | Seuils de supervision et logique d'alerte |
+| `NOMMAGE_ET_CHOIX_OUTILS.md` | Noms canoniques Artemis, écarts assumés et rôle des outils |
 
 ## Prérequis
 
@@ -106,9 +107,9 @@ ITSM
 
 Logs / SIEM
     |-- artrsy01p      Rsyslog collecteur et relais
-    |-- artgry01p      Graylog
-    |-- artgrydb01p    MongoDB Graylog
-    |-- artgryidx01p   OpenSearch Graylog
+    |-- artgra01p      Graylog
+    |-- artgradb01p    MongoDB Graylog
+    |-- artgraidx01p   OpenSearch Graylog
     `-- artspl01p      Splunk
 
 Supervision
@@ -116,7 +117,7 @@ Supervision
     |-- artzabweb01p  Interface web Zabbix
     |-- artdb01p      Base PostgreSQL Zabbix
     |-- artnag01p     Nagios
-    |-- artprom01p    Prometheus
+    |-- artpgr01p    Prometheus
     |-- artgrf01p     Grafana
     |-- artbbx01p     Blackbox Exporter
     `-- artmet01p     Exporter métriques Docker
@@ -170,6 +171,8 @@ Après démarrage, vérifiez les interfaces principales :
 Consultez `PROCEDURE.md` pour la procédure complète : démarrage, accès, configuration Zabbix, dashboards, arrêt et dépannage.
 
 Consultez `SUPERVISION_THRESHOLDS.md` pour la définition des métriques, seuils `WARNING` et seuils `CRITICAL`.
+
+Consultez `NOMMAGE_ET_CHOIX_OUTILS.md` pour le mapping avec les noms du sujet et la justification du rôle de Zabbix, Nagios, Prometheus/Grafana, Graylog/Splunk et GLPI.
 
 ## Notes de publication GitHub
 

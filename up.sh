@@ -24,6 +24,15 @@ echo ""
 docker compose up -d --remove-orphans "$@"
 echo ""
 
+# Les agents Zabbix sidecars partagent le namespace réseau du service cible.
+# Si un service cible a été recréé ou redémarré, on recrée les agents pour
+# éviter qu'ils restent attachés à un ancien namespace sans port 10050.
+mapfile -t ZABBIX_AGENT_SERVICES < <(docker compose config --services | grep '^zabbix-agent-' || true)
+if [ "${#ZABBIX_AGENT_SERVICES[@]}" -gt 0 ]; then
+  docker compose up -d --no-deps --force-recreate "${ZABBIX_AGENT_SERVICES[@]}"
+  echo ""
+fi
+
 # ── Fonction de vérification ──────────────────────────────────────────────────
 # Affiche le label puis des points + marqueur toutes les 30s.
 # Termine par ✓ UP / ✗ ERREUR / ✗ TIMEOUT selon le cas.
@@ -106,7 +115,7 @@ configure_graylog() {
     echo -e "  ${GREEN}✓  Inputs Syslog Graylog prêts${RESET}"
   else
     echo -e "  ${RED}✗  Configuration Graylog incomplète${RESET}"
-    echo -e "      ${DIM}→ relancer ./graylog/setup-inputs.sh après démarrage de artgry01p${RESET}"
+    echo -e "      ${DIM}→ relancer ./graylog/setup-inputs.sh après démarrage de artgra01p${RESET}"
   fi
 }
 
@@ -131,14 +140,14 @@ check_service "artglptdb01p"           artglptdb01p
 check_service "artglpt01p"             artglpt01p
 check_service "agent → artglptdb01p"   zabbix-agent-artglptdb01p
 check_service "agent → artglpt01p"     zabbix-agent-artglpt01p
-check_service "artgrydb01p"            artgrydb01p
-check_service "artgryidx01p"           artgryidx01p
-check_service "artgry01p"              artgry01p
+check_service "artgradb01p"            artgradb01p
+check_service "artgraidx01p"           artgraidx01p
+check_service "artgra01p"              artgra01p
 check_service "artspl01p"              artspl01p
 check_service "artrsy01p"              artrsy01p
-check_service "agent → artgrydb01p"    zabbix-agent-artgrydb01p
-check_service "agent → artgryidx01p"   zabbix-agent-artgryidx01p
-check_service "agent → artgry01p"      zabbix-agent-artgry01p
+check_service "agent → artgradb01p"    zabbix-agent-artgradb01p
+check_service "agent → artgraidx01p"   zabbix-agent-artgraidx01p
+check_service "agent → artgra01p"      zabbix-agent-artgra01p
 check_service "agent → artspl01p"      zabbix-agent-artspl01p
 check_service "agent → artrsy01p"      zabbix-agent-artrsy01p
 check_service "artsft02p"             artsft02p
@@ -154,8 +163,8 @@ check_service "artbbx01p"             artbbx01p
 check_service "agent → artbbx01p"     zabbix-agent-artbbx01p
 check_service "artmet01p"             artmet01p
 check_service "agent → artmet01p"     zabbix-agent-artmet01p
-check_service "artprom01p"            artprom01p
-check_service "agent → artprom01p"    zabbix-agent-artprom01p
+check_service "artpgr01p"             artpgr01p
+check_service "agent → artpgr01p"     zabbix-agent-artpgr01p
 check_service "artgrf01p"             artgrf01p
 check_service "agent → artgrf01p"     zabbix-agent-artgrf01p
 check_service "artnag01p"             artnag01p

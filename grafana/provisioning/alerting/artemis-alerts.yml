@@ -262,7 +262,7 @@ groups:
                 type: prometheus
                 uid: prometheus
               editorMode: code
-              expr: max((1 - min(probe_success{job="blackbox_tcp",instance=~"artgrydb01p:27017|artgryidx01p:9200|artgry01p:9000|artgry01p:1514|artspl01p:8000|artspl01p:8088|artspl01p:1515|artrsy01p:514"})) or (1 - min(probe_success{job="blackbox_http",instance=~"http://artgry01p:9000/api/system/lbstatus|http://artspl01p:8000/en-US/account/login"})) or vector(0))
+              expr: max((1 - min(probe_success{job="blackbox_tcp",instance=~"artgradb01p:27017|artgraidx01p:9200|artgra01p:9000|artgra01p:1514|artspl01p:8000|artspl01p:8088|artspl01p:1515|artrsy01p:514"})) or (1 - min(probe_success{job="blackbox_http",instance=~"http://artgra01p:9000/api/system/lbstatus|http://artspl01p:8000/en-US/account/login"})) or vector(0))
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200
@@ -627,7 +627,7 @@ groups:
                 type: prometheus
                 uid: prometheus
               editorMode: code
-              expr: max((1 - min(probe_success{job="blackbox_tcp",instance=~"artzabweb01p:8080|artnag01p:80|artprom01p:9090|artgrf01p:3000"})) or (1 - min(up{job=~"prometheus|docker_metrics"})) or vector(0))
+              expr: max((1 - min(probe_success{job="blackbox_tcp",instance=~"artzabweb01p:8080|artnag01p:80|artpgr01p:9090|artgrf01p:3000"})) or (1 - min(up{job=~"prometheus|docker_metrics"})) or vector(0))
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200

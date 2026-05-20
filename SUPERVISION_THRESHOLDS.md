@@ -4,7 +4,7 @@ This file is the monitoring contract for the lab: it states what is watched, why
 
 ## Scope and Mapping
 
-The lab intentionally keeps a reduced, reproducible Artemis architecture: one HAProxy frontend, two Nginx web backends, one PostgreSQL primary/replica pair, one GLPI instance with a dedicated MySQL database, SFTP/NFS file services, a simple backup job, the monitoring stack, and a logs/SIEM chain with Rsyslog, Graylog and Splunk. SMTP, LDAP/annuaire, VIP HAProxy and network zoning are out of scope by design. In Docker, each container represents one Artemis machine; `artmet01p` exports the system metrics that would normally come from VM agents.
+The lab intentionally keeps a reduced, reproducible Artemis architecture: one HAProxy frontend, two Nginx web backends, one PostgreSQL primary/replica pair, one GLPI instance with a dedicated MySQL database, SFTP/NFS file services, a simple backup job, the monitoring stack, and a logs/SIEM chain with Rsyslog, Graylog and Splunk. SMTP, LDAP/annuaire, VIP HAProxy and network zoning are out of scope by design. In Docker, each container represents one Artemis machine; `artmet01p` exports the system metrics that would normally come from VM agents. The naming choices and accepted deviations from the subject are documented in `NOMMAGE_ET_CHOIX_OUTILS.md`.
 
 ## Platform and Container Health
 

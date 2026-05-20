@@ -65,11 +65,41 @@ get_host_id() {
   }' | json_get - "d['result'][0]['hostid']"
 }
 
+get_host_id_optional() {
+  api '{
+    "jsonrpc":"2.0","method":"host.get","id":5,"auth":"'"$TOKEN"'",
+    "params":{"filter":{"host":["'"$1"'"]},"output":["hostid"]}
+  }' | json_get - "d['result'][0]['hostid'] if d['result'] else ''"
+}
+
 get_interface_id() {
   api '{
     "jsonrpc":"2.0","method":"hostinterface.get","id":6,"auth":"'"$TOKEN"'",
     "params":{"hostids":["'"$1"'"],"output":["interfaceid"]}
   }' | json_get - "d['result'][0]['interfaceid']"
+}
+
+delete_host_if_present() {
+  local name=$1 hostid result err
+  hostid=$(get_host_id_optional "$name")
+
+  if [ -z "$hostid" ]; then
+    return 0
+  fi
+
+  result=$(api '{
+    "jsonrpc":"2.0","method":"host.delete","id":10,"auth":"'"$TOKEN"'",
+    "params":["'"$hostid"'"]
+  }')
+
+  err=$(echo "$result" | python3 -c \
+    "import sys,json; d=json.load(sys.stdin); print(d.get('error',{}).get('data',''))" 2>/dev/null)
+
+  if [ -n "$err" ]; then
+    echo -e "${RED}✗  ancien host ${name}: ${err}${RESET}"
+  else
+    echo -e "${GREEN}✓  ancien host ${name} supprimé${RESET}"
+  fi
 }
 
 printf "  Templates & groupes...       "
@@ -83,6 +113,20 @@ if [ -z "$TPL_LINUX" ] || [ -z "$TPL_NGINX" ] || [ -z "$TPL_HAPRX" ]; then
   exit 1
 fi
 echo -e "${GREEN}✓${RESET}"
+
+# ── Nettoyage des anciens noms qui provoquent des erreurs DNS Zabbix ─────────
+echo -e "${BOLD}  Nettoyage des anciens noms${RESET}"
+echo -e "${DIM}  ──────────────────────────────────────────${RESET}"
+for legacy_host in \
+  artglp01p \
+  artglpdb01p \
+  artgry01p \
+  artgrydb01p \
+  artgryidx01p \
+  artprom01p
+do
+  delete_host_if_present "$legacy_host"
+done
 
 # ── Création d'un host ────────────────────────────────────────────────────────
 create_host() {
@@ -211,9 +255,9 @@ for host in \
   artbdd02p \
   artglpt01p \
   artglptdb01p \
-  artgrydb01p \
-  artgryidx01p \
-  artgry01p \
+  artgradb01p \
+  artgraidx01p \
+  artgra01p \
   artspl01p \
   artrsy01p \
   artsft02p \
@@ -221,7 +265,7 @@ for host in \
   artbkp01p \
   artbbx01p \
   artmet01p \
-  artprom01p \
+  artpgr01p \
   artgrf01p \
   artnag01p
 do
@@ -248,12 +292,12 @@ ensure_simple_check "artglpt01p" "GLPI HTTP status" "net.tcp.service[http,,80]" 
 ensure_simple_check "artglpt01p" "GLPI HTTP response time" "net.tcp.service.perf[http,,80]" 0
 ensure_simple_check "artglptdb01p" "GLPI MySQL TCP status" "net.tcp.service[tcp,,3306]" 3
 ensure_simple_check "artglptdb01p" "GLPI MySQL TCP response time" "net.tcp.service.perf[tcp,,3306]" 0
-ensure_simple_check "artgrydb01p" "Graylog MongoDB TCP status" "net.tcp.service[tcp,,27017]" 3
-ensure_simple_check "artgryidx01p" "OpenSearch HTTP status" "net.tcp.service[http,,9200]" 3
-ensure_simple_check "artgryidx01p" "OpenSearch HTTP response time" "net.tcp.service.perf[http,,9200]" 0
-ensure_simple_check "artgry01p" "Graylog HTTP status" "net.tcp.service[http,,9000]" 3
-ensure_simple_check "artgry01p" "Graylog HTTP response time" "net.tcp.service.perf[http,,9000]" 0
-ensure_simple_check "artgry01p" "Graylog Syslog TCP status" "net.tcp.service[tcp,,1514]" 3
+ensure_simple_check "artgradb01p" "Graylog MongoDB TCP status" "net.tcp.service[tcp,,27017]" 3
+ensure_simple_check "artgraidx01p" "OpenSearch HTTP status" "net.tcp.service[http,,9200]" 3
+ensure_simple_check "artgraidx01p" "OpenSearch HTTP response time" "net.tcp.service.perf[http,,9200]" 0
+ensure_simple_check "artgra01p" "Graylog HTTP status" "net.tcp.service[http,,9000]" 3
+ensure_simple_check "artgra01p" "Graylog HTTP response time" "net.tcp.service.perf[http,,9000]" 0
+ensure_simple_check "artgra01p" "Graylog Syslog TCP status" "net.tcp.service[tcp,,1514]" 3
 ensure_simple_check "artspl01p" "Splunk HTTP status" "net.tcp.service[http,,8000]" 3
 ensure_simple_check "artspl01p" "Splunk HTTP response time" "net.tcp.service.perf[http,,8000]" 0
 ensure_simple_check "artspl01p" "Splunk HEC TCP status" "net.tcp.service[tcp,,8088]" 3
@@ -262,8 +306,8 @@ ensure_simple_check "artrsy01p" "Rsyslog TCP status" "net.tcp.service[tcp,,514]"
 ensure_simple_check "artbbx01p" "Blackbox exporter TCP status" "net.tcp.service[tcp,,9115]" 3
 ensure_simple_check "artmet01p" "Docker metrics HTTP status" "net.tcp.service[http,,8080]" 3
 ensure_simple_check "artmet01p" "Docker metrics HTTP response time" "net.tcp.service.perf[http,,8080]" 0
-ensure_simple_check "artprom01p" "Prometheus HTTP status" "net.tcp.service[http,,9090]" 3
-ensure_simple_check "artprom01p" "Prometheus HTTP response time" "net.tcp.service.perf[http,,9090]" 0
+ensure_simple_check "artpgr01p" "Prometheus HTTP status" "net.tcp.service[http,,9090]" 3
+ensure_simple_check "artpgr01p" "Prometheus HTTP response time" "net.tcp.service.perf[http,,9090]" 0
 ensure_simple_check "artgrf01p" "Grafana HTTP status" "net.tcp.service[http,,3000]" 3
 ensure_simple_check "artgrf01p" "Grafana HTTP response time" "net.tcp.service.perf[http,,3000]" 0
 ensure_simple_check "artnag01p" "Nagios HTTP status" "net.tcp.service[http,,80]" 3

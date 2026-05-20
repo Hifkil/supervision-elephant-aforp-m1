@@ -479,7 +479,7 @@
         }
       },
       "targets": [
-        { "expr": "probe_success{job=\"blackbox_http\",instance=\"http://artgry01p:9000/api/system/lbstatus\"}", "legendFormat": "Graylog API" },
+        { "expr": "probe_success{job=\"blackbox_http\",instance=\"http://artgra01p:9000/api/system/lbstatus\"}", "legendFormat": "Graylog API" },
         { "expr": "probe_success{job=\"blackbox_http\",instance=\"http://artspl01p:8000/en-US/account/login\"}", "legendFormat": "Splunk Web" },
         { "expr": "probe_success{job=\"blackbox_tcp\",instance=\"artrsy01p:514\"}", "legendFormat": "Rsyslog TCP" }
       ]
@@ -500,7 +500,7 @@
         }
       },
       "targets": [
-        { "expr": "probe_success{job=\"blackbox_tcp\",instance=\"artgry01p:1514\"}", "legendFormat": "Graylog Syslog" },
+        { "expr": "probe_success{job=\"blackbox_tcp\",instance=\"artgra01p:1514\"}", "legendFormat": "Graylog Syslog" },
         { "expr": "probe_success{job=\"blackbox_tcp\",instance=\"artspl01p:1515\"}", "legendFormat": "Splunk Syslog" },
         { "expr": "probe_success{job=\"blackbox_tcp\",instance=\"artspl01p:8088\"}", "legendFormat": "Splunk HEC" }
       ]
@@ -513,7 +513,7 @@
       "fieldConfig": { "defaults": { "unit": "ms", "color": { "mode": "palette-classic" } } },
       "options": { "tooltip": { "mode": "multi" } },
       "targets": [
-        { "expr": "probe_duration_seconds{job=\"blackbox_http\",instance=\"http://artgry01p:9000/api/system/lbstatus\"} * 1000", "legendFormat": "Graylog API" },
+        { "expr": "probe_duration_seconds{job=\"blackbox_http\",instance=\"http://artgra01p:9000/api/system/lbstatus\"} * 1000", "legendFormat": "Graylog API" },
         { "expr": "probe_duration_seconds{job=\"blackbox_http\",instance=\"http://artspl01p:8000/en-US/account/login\"} * 1000", "legendFormat": "Splunk Web" },
         { "expr": "probe_duration_seconds{job=\"blackbox_tcp\",instance=\"artrsy01p:514\"} * 1000", "legendFormat": "Rsyslog TCP" }
       ]

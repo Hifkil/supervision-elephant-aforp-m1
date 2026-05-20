@@ -95,9 +95,9 @@ ITSM
 
 Logs / SIEM
     ├── artrsy01p      Rsyslog collecteur et relais
-    ├── artgry01p      Graylog
-    ├── artgrydb01p    MongoDB Graylog
-    ├── artgryidx01p   OpenSearch Graylog
+    ├── artgra01p      Graylog
+    ├── artgradb01p    MongoDB Graylog
+    ├── artgraidx01p   OpenSearch Graylog
     └── artspl01p      Splunk
 
 Supervision
@@ -105,7 +105,7 @@ Supervision
     ├── artzabweb01p Zabbix Interface web
     ├── artdb01p    Base de données Zabbix (PostgreSQL)
     ├── artnag01p   Nagios
-    ├── artprom01p  Prometheus
+    ├── artpgr01p  Prometheus
     ├── artgrf01p   Grafana
     └── artbbx01p   Blackbox Exporter (probes HTTP/ICMP)
 ```
@@ -137,7 +137,7 @@ GLPI utilise `artglptdb01p`, une base MySQL dédiée. Les bases déjà présente
 
 `artrsy01p` lit les logs JSON Docker de tous les conteneurs du lab via `/var/lib/docker/containers`, écoute aussi du syslog TCP/UDP sur `localhost:10514`, puis transfère vers :
 
-- Graylog `artgry01p:1514` avec les inputs **Artemis syslog TCP/UDP** créés par `./graylog/setup-inputs.sh`
+- Graylog `artgra01p:1514` avec les inputs **Artemis syslog TCP/UDP** créés par `./graylog/setup-inputs.sh`
 - Splunk `artspl01p:1515` dans l'index `artemis`
 
 Recherche rapide Splunk :
@@ -230,12 +230,12 @@ Nagios vérifie automatiquement toutes les **minutes** :
 | artbdd02p | PING, PostgreSQL TCP, exporter `pg_up`, rôle réplique, métrique de lag |
 | artdb01p | PING, PostgreSQL TCP de la base Zabbix |
 | artglpt01p / artglptdb01p | PING, HTTP GLPI, contenu HTTP, MySQL TCP |
-| artgrydb01p / artgryidx01p / artgry01p | PING, MongoDB TCP, OpenSearch HTTP, Graylog API, Graylog Syslog TCP |
+| artgradb01p / artgraidx01p / artgra01p | PING, MongoDB TCP, OpenSearch HTTP, Graylog API, Graylog Syslog TCP |
 | artspl01p / artrsy01p | PING, Splunk Web, Splunk HEC, Splunk Syslog TCP, Rsyslog TCP |
 | artzab01p / artzabweb01p | PING, port serveur Zabbix, endpoint `/ping` web |
 | artbkp01p | PING, endpoint métriques backup, compteur de fichiers copiés |
 | artbbx01p / artmet01p | PING, métriques Blackbox, métriques Docker et volumes |
-| artprom01p / artgrf01p / artnag01p | PING, santé Prometheus, API Grafana, interface Nagios |
+| artpgr01p / artgrf01p / artnag01p | PING, santé Prometheus, API Grafana, interface Nagios |
 
 Accédez aux résultats : http://localhost:8081/nagios → **Services**
 
@@ -279,9 +279,9 @@ Les alertes provisionnées sont disponibles dans **Alerting → Alert rules → 
 | arthpx01p | Linux by Zabbix agent + HAProxy by HTTP |
 | artbdd01p / artbdd02p | Linux by Zabbix agent |
 | artglpt01p / artglptdb01p | Linux by Zabbix agent |
-| artgrydb01p / artgryidx01p / artgry01p / artspl01p / artrsy01p | Linux by Zabbix agent |
+| artgradb01p / artgraidx01p / artgra01p / artspl01p / artrsy01p | Linux by Zabbix agent |
 | artsft02p / artnfs01p / artbkp01p | Linux by Zabbix agent |
-| artprom01p / artgrf01p / artnag01p / artbbx01p / artmet01p | Linux by Zabbix agent |
+| artpgr01p / artgrf01p / artnag01p / artbbx01p / artmet01p | Linux by Zabbix agent |
 
 Le template **HAProxy by HTTP** collecte les métriques via la page de stats CSV de HAProxy (port 8406), sans passer par l'agent.
 
