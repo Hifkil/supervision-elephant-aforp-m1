@@ -1,0 +1,27 @@
+flowchart LR
+  EXT[Poste hote]
+  DOCKER[Logs JSON Docker<br/>/var/lib/docker/containers]
+  RSY[artrsy01p<br/>Rsyslog]
+  GRA[artgra01p<br/>Graylog]
+  GRADB[artgradb01p<br/>MongoDB]
+  GRAIDX[artgraidx01p<br/>OpenSearch]
+  SPL[artspl01p<br/>Splunk]
+
+  EXT -->|Syslog TCP/UDP 10514 -> 514| RSY
+  DOCKER -->|montage lecture seule| RSY
+  RSY -->|Syslog TCP 1514| GRA
+  RSY -->|Syslog TCP 1515| SPL
+  EXT -->|GELF TCP/UDP 12201| GRA
+  EXT -->|Graylog UI/API 9000| GRA
+  EXT -->|Splunk UI 8000| SPL
+  EXT -->|Splunk HEC 8088| SPL
+  GRA -->|MongoDB 27017| GRADB
+  GRA -->|OpenSearch 9200| GRAIDX
+
+  classDef ext fill:#fff7ed,stroke:#ea580c,color:#111827
+  classDef siem fill:#f3e8ff,stroke:#9333ea,color:#111827
+  classDef storage fill:#f1f5f9,stroke:#64748b,color:#111827
+
+  class EXT ext
+  class RSY,GRA,SPL siem
+  class DOCKER,GRADB,GRAIDX storage

@@ -26,6 +26,8 @@ Le lab simule une entrée web HAProxy, deux backends Nginx, un cluster PostgreSQ
 | `run-scenario.sh` | Script interactif des scénarios de panne |
 | `Sujet/` | Documents sources du brief et du cours |
 | `PROCEDURE.md` | Procédure détaillée de démarrage, accès et dépannage |
+| `DEX.md` | Dossier d'exploitation de la maquette |
+| `SCHEMA_FLUX.md` | Schémas Mermaid des flux entre conteneurs |
 | `SUPERVISION_THRESHOLDS.md` | Seuils de supervision et logique d'alerte |
 | `NOMMAGE_ET_CHOIX_OUTILS.md` | Noms canoniques Artemis, écarts assumés et rôle des outils |
 | `SCENARIOS_DE_PANNE.md` | Scénarios de panne prêts à rejouer en démonstration |
@@ -171,6 +173,10 @@ Après démarrage, vérifiez les interfaces principales :
 ## Documentation
 
 Consultez `PROCEDURE.md` pour la procédure complète : démarrage, accès, configuration Zabbix, dashboards, arrêt et dépannage.
+
+Consultez `DEX.md` pour le dossier d'exploitation : architecture, accès, procédures de run, supervision, sauvegarde, diagnostics et scénarios d'incident.
+
+Consultez `SCHEMA_FLUX.md` pour les schémas des flux entre conteneurs : applicatif, supervision, logs/SIEM, sidecars et volumes.
 
 Consultez `SUPERVISION_THRESHOLDS.md` pour la définition des métriques, seuils `WARNING` et seuils `CRITICAL`.
 

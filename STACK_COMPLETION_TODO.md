@@ -29,7 +29,8 @@ Ce fichier suit les derniers points a traiter pour considerer le stack de superv
 - [ ] Notifications d'alertes Grafana/Zabbix/Nagios.
 - [ ] Sauvegarde externalisee robuste avec retention.
 - [ ] SMTP, LDAP/annuaire, VIP HAProxy et segmentation reseau.
-- [ ] Livrables RAO hors code : presentation, DEX, plan financier, planning projet.
+- [x] Livrable DEX cree dans `DEX.md`.
+- [ ] Livrables RAO hors code restants : presentation, plan financier, planning projet.
 
 ## Definition de termine
 

@@ -48,10 +48,12 @@ Ce fichier suit les choix et l'avancement technique du lab. Il sert de note de t
 - [x] Validation PostgreSQL : `artbdd01p` primaire, `artbdd02p` en recovery, réplication de données testée.
 - [x] Renommage de Graylog en `artgra01p` et de Prometheus en `artpgr01p`.
 - [x] Ajout du document `NOMMAGE_ET_CHOIX_OUTILS.md` pour cadrer les écarts assumés et le rôle de chaque outil.
+- [x] Ajout du dossier d'exploitation `DEX.md`.
+- [x] Ajout du document `SCHEMA_FLUX.md` pour les flux entre conteneurs.
 
 ## Restera volontairement ouvert
 
 - Refactor de la sauvegarde réelle via SFTP/NFS client.
 - Notifications d'alertes Grafana.
-- Livrables RAO hors code : présentation, DEX, plan financier, planning projet.
+- Livrables RAO hors code restants : présentation, plan financier, planning projet.
 - Nettoyage éventuel de l'ancien export `zabbix/hosts-artemis.xml`, non utilisé par `./up.sh`.

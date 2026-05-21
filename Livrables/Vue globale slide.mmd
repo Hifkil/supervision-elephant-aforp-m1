@@ -1,0 +1,54 @@
+%% Vue generale concise pour slide
+flowchart LR
+  USER[Utilisateurs<br/>navigateur / SFTP / logs]
+
+  subgraph APP["Services applicatifs"]
+    HPX[HAProxy<br/>arthpx01p]
+    WEB[Web Nginx<br/>artweb01p / artweb02p]
+    GLPI[GLPI<br/>artglpt01p]
+    BDD[Bases de donnees<br/>PostgreSQL primaire/replique<br/>+ MySQL GLPI]
+    FILES[SFTP / NFS / Backup<br/>artsft02p / artnfs01p / artbkp01p]
+  end
+
+  subgraph LOGS["Logs / SIEM"]
+    RSY[Rsyslog<br/>artrsy01p]
+    SIEM[Graylog + Splunk<br/>artgra01p / artspl01p]
+    INDEX[MongoDB + OpenSearch<br/>artgradb01p / artgraidx01p]
+  end
+
+  subgraph MON["Supervision"]
+    ZBX[Zabbix<br/>artzab01p / artzabweb01p]
+    NAG[Nagios<br/>artnag01p]
+    PROM[Prometheus + Grafana<br/>artpgr01p / artgrf01p]
+    PROBES[Blackbox + exporters<br/>artbbx01p / artmet01p]
+  end
+
+  USER -->|HTTP 80| HPX
+  HPX -->|HTTP| WEB
+  USER -->|HTTP 8082| GLPI
+  GLPI -->|MySQL| BDD
+  USER -->|SFTP 2222| FILES
+
+  USER -->|Syslog 10514| RSY
+  RSY -->|1514 / 1515| SIEM
+  SIEM -->|stockage / index| INDEX
+
+  ZBX -->|agents + checks TCP| APP
+  NAG -->|checks actifs| APP
+  PROM -->|scrape metrics| PROBES
+  PROBES -->|probes HTTP/TCP/ICMP| APP
+  PROM -->|datasource| MON
+
+  classDef user fill:#fff7ed,stroke:#ea580c,color:#111827
+  classDef app fill:#dbeafe,stroke:#2563eb,color:#111827
+  classDef logs fill:#f3e8ff,stroke:#9333ea,color:#111827
+  classDef mon fill:#e0e7ff,stroke:#4f46e5,color:#111827
+  classDef db fill:#dcfce7,stroke:#16a34a,color:#111827
+  classDef files fill:#e0f2fe,stroke:#0284c7,color:#111827
+
+  class USER user
+  class HPX,WEB,GLPI app
+  class BDD db
+  class FILES files
+  class RSY,SIEM,INDEX logs
+  class ZBX,NAG,PROM,PROBES mon
